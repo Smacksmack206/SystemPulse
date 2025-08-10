@@ -1,0 +1,9 @@
+[project]
+name = "systempulse"
+version = "0.1.0"
+description = "A modern system utility and monitoring tool."
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "psutil",
+]
