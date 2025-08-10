@@ -6,11 +6,15 @@ import textwrap
 import uvicorn
 import psutil
 import time
+import platform
+import socket
+import subprocess
 from pathlib import Path
+from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 # ==============================================================================
 # PART 1: PROJECT SETUP LOGIC
@@ -223,6 +227,44 @@ html_content = """
         .theme-neo-kyoto .btn-scan { background-color: #00F5D4; color: #0D0221; }
         .theme-neo-kyoto .btn-delete { background-color: #F900F9; color: #0D0221; }
         .loading { opacity: 0.6; }
+
+        /* Process Monitor Specifics */
+        .process-list { max-height: 400px; overflow-y: auto; }
+        .process-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; font-size: 0.85rem; }
+        .process-info { flex: 1; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 1rem; align-items: center; }
+        .process-name { font-weight: bold; }
+        .process-cpu, .process-memory { text-align: right; }
+        .btn-kill { background-color: #FF3B30; color: white; padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+
+        /* Disk Analyzer Specifics */
+        .disk-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 8px; }
+        .disk-info { flex: 1; }
+        .disk-name { font-weight: bold; }
+        .disk-path { opacity: 0.7; font-size: 0.9rem; }
+        .disk-usage { text-align: right; }
+        .disk-bar { width: 100px; height: 8px; border-radius: 4px; margin: 0.5rem 0; overflow: hidden; }
+        .disk-bar-fill { height: 100%; transition: width 0.3s; }
+        .theme-clarity .disk-item { background-color: #F8F8F8; }
+        .theme-clarity .disk-bar { background-color: #E5E5EA; }
+        .theme-clarity .disk-bar-fill { background-color: #0A84FF; }
+        .theme-operator .disk-item { background-color: #2D2D2D; }
+        .theme-operator .disk-bar { background-color: #3A3A3A; }
+        .theme-operator .disk-bar-fill { background-color: #39FF14; }
+        .theme-neo-kyoto .disk-item { background-color: rgba(255,255,255,0.05); }
+        .theme-neo-kyoto .disk-bar { background-color: rgba(255,255,255,0.1); }
+        .theme-neo-kyoto .disk-bar-fill { background-color: #00F5D4; }
+
+        /* System Info Specifics */
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
+        .info-item { display: flex; justify-content: space-between; padding: 0.5rem 0; }
+        .info-label { font-weight: bold; opacity: 0.8; }
+        .info-value { text-align: right; }
+
+        /* Network Monitor Specifics */
+        .network-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .network-interface { padding: 1rem; border-radius: 8px; }
+        .interface-name { font-weight: bold; margin-bottom: 0.5rem; }
+        .interface-stats { font-size: 0.9rem; opacity: 0.8; }
     </style>
 </head>
 <body class="theme-clarity">
@@ -232,7 +274,11 @@ html_content = """
         <div class="header-controls">
             <div class="nav-tabs">
                 <div class="nav-tab active" data-tab="system">System Monitor</div>
+                <div class="nav-tab" data-tab="processes">Processes</div>
+                <div class="nav-tab" data-tab="disk">Disk Analyzer</div>
+                <div class="nav-tab" data-tab="network">Network</div>
                 <div class="nav-tab" data-tab="files">File Cleaner</div>
+                <div class="nav-tab" data-tab="info">System Info</div>
             </div>
             <div class="theme-selector">
                 <label for="theme-select">Theme:</label>
@@ -268,6 +314,44 @@ html_content = """
             </div>
         </div>
 
+        <!-- Process Monitor Dashboard -->
+        <div id="processes-dashboard" class="dashboard-section">
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>Running Processes</h2>
+                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Monitor and manage running processes on your system.</p>
+                <div class="process-list" id="process-list">
+                    <p>Loading processes...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disk Analyzer Dashboard -->
+        <div id="disk-dashboard" class="dashboard-section">
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>Disk Usage Analysis</h2>
+                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Analyze disk usage across all mounted drives and directories.</p>
+                <div id="disk-list">
+                    <p>Loading disk information...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Network Monitor Dashboard -->
+        <div id="network-dashboard" class="dashboard-section">
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>Network Interfaces</h2>
+                <div class="network-stats" id="network-interfaces">
+                    <p>Loading network interfaces...</p>
+                </div>
+            </div>
+            <div class="card network-card">
+                <h2>Active Connections</h2>
+                <div id="network-connections" class="network-list">
+                    <p>Loading connections...</p>
+                </div>
+            </div>
+        </div>
+
         <!-- File Cleaner Dashboard -->
         <div id="files-dashboard" class="dashboard-section">
             <div class="card file-cleaner-card">
@@ -287,6 +371,22 @@ html_content = """
                     <p><strong>Files Found:</strong> <span id="files-count">0</span></p>
                     <p><strong>Total Size:</strong> <span id="total-size">0 B</span></p>
                     <p><strong>Largest File:</strong> <span id="largest-file">None</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Info Dashboard -->
+        <div id="info-dashboard" class="dashboard-section">
+            <div class="card">
+                <h2>System Information</h2>
+                <div class="info-grid" id="system-info">
+                    <p>Loading system information...</p>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Hardware Information</h2>
+                <div class="info-grid" id="hardware-info">
+                    <p>Loading hardware information...</p>
                 </div>
             </div>
         </div>
@@ -491,11 +591,212 @@ html_content = """
             }
         });
 
+        // --- Process Monitor Logic ---
+        function updateProcessList() {
+            fetch('/api/processes')
+                .then(response => response.json())
+                .then(processes => {
+                    const listElement = document.getElementById('process-list');
+                    listElement.innerHTML = '';
+                    
+                    processes.forEach(proc => {
+                        const item = document.createElement('div');
+                        item.className = 'process-item connection-item';
+                        
+                        item.innerHTML = `
+                            <div class="process-info">
+                                <span class="process-name">${proc.name}</span>
+                                <span class="process-cpu">${proc.cpu_percent}%</span>
+                                <span class="process-memory">${proc.memory_percent}%</span>
+                                <span>${proc.pid}</span>
+                                <button class="btn btn-kill" onclick="killProcess(${proc.pid})">Kill</button>
+                            </div>
+                        `;
+                        listElement.appendChild(item);
+                    });
+                })
+                .catch(error => console.error('Error fetching processes:', error));
+        }
+        
+        function killProcess(pid) {
+            if (!confirm(`Are you sure you want to kill process ${pid}?`)) return;
+            
+            fetch('/api/processes/kill', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pid: pid })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('Process killed successfully');
+                    updateProcessList();
+                } else {
+                    alert(`Error: ${result.error}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error killing process:', error);
+                alert('Error killing process');
+            });
+        }
+
+        // --- Disk Analyzer Logic ---
+        function updateDiskInfo() {
+            fetch('/api/disk')
+                .then(response => response.json())
+                .then(disks => {
+                    const listElement = document.getElementById('disk-list');
+                    listElement.innerHTML = '';
+                    
+                    disks.forEach(disk => {
+                        const item = document.createElement('div');
+                        item.className = 'disk-item';
+                        
+                        const usedPercent = (disk.used / disk.total * 100).toFixed(1);
+                        
+                        item.innerHTML = `
+                            <div class="disk-info">
+                                <div class="disk-name">${disk.device}</div>
+                                <div class="disk-path">${disk.mountpoint}</div>
+                                <div class="disk-bar">
+                                    <div class="disk-bar-fill" style="width: ${usedPercent}%"></div>
+                                </div>
+                            </div>
+                            <div class="disk-usage">
+                                <div>${formatFileSize(disk.used)} / ${formatFileSize(disk.total)}</div>
+                                <div>${usedPercent}% used</div>
+                            </div>
+                        `;
+                        listElement.appendChild(item);
+                    });
+                })
+                .catch(error => console.error('Error fetching disk info:', error));
+        }
+
+        // --- Network Monitor Logic ---
+        function updateNetworkInterfaces() {
+            fetch('/api/network/interfaces')
+                .then(response => response.json())
+                .then(interfaces => {
+                    const listElement = document.getElementById('network-interfaces');
+                    listElement.innerHTML = '';
+                    
+                    Object.entries(interfaces).forEach(([name, stats]) => {
+                        const item = document.createElement('div');
+                        item.className = 'network-interface card';
+                        
+                        item.innerHTML = `
+                            <div class="interface-name">${name}</div>
+                            <div class="interface-stats">
+                                <div>Sent: ${formatFileSize(stats.bytes_sent)}</div>
+                                <div>Received: ${formatFileSize(stats.bytes_recv)}</div>
+                                <div>Packets Sent: ${stats.packets_sent}</div>
+                                <div>Packets Received: ${stats.packets_recv}</div>
+                            </div>
+                        `;
+                        listElement.appendChild(item);
+                    });
+                })
+                .catch(error => console.error('Error fetching network interfaces:', error));
+        }
+
+        function updateNetworkConnections() {
+            fetch('/api/network')
+                .then(response => response.json())
+                .then(connections => {
+                    const listElement = document.getElementById('network-connections');
+                    listElement.innerHTML = '';
+
+                    if (connections.length === 0) {
+                        listElement.innerHTML = '<p>No active connections found.</p>';
+                        return;
+                    }
+
+                    connections.forEach(conn => {
+                        const item = document.createElement('div');
+                        item.className = 'connection-item';
+                        
+                        const localAddr = conn.local_address.replace('::ffff:', '');
+                        const remoteAddr = conn.remote_address.replace('::ffff:', '');
+
+                        item.innerHTML = `
+                            <span class="connection-address"><b>${localAddr}</b> &#8594; ${remoteAddr}</span>
+                            <span class="connection-status">${conn.status}</span>
+                        `;
+                        listElement.appendChild(item);
+                    });
+                })
+                .catch(error => console.error('Error fetching network connections:', error));
+        }
+
+        // --- System Info Logic ---
+        function updateSystemInfo() {
+            fetch('/api/system')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('cpu-usage').textContent = `${data.cpu_percent}%`;
+                    document.getElementById('mem-usage').textContent = `${data.memory_percent}%`;
+                    document.getElementById('disk-usage').textContent = `${data.disk_percent}%`;
+                })
+                .catch(error => console.error('Error fetching system info:', error));
+        }
+
+        function updateSystemInfoPage() {
+            fetch('/api/system/info')
+                .then(response => response.json())
+                .then(info => {
+                    const systemElement = document.getElementById('system-info');
+                    const hardwareElement = document.getElementById('hardware-info');
+                    
+                    systemElement.innerHTML = `
+                        <div class="info-item"><span class="info-label">Operating System:</span><span class="info-value">${info.system.os}</span></div>
+                        <div class="info-item"><span class="info-label">Version:</span><span class="info-value">${info.system.version}</span></div>
+                        <div class="info-item"><span class="info-label">Architecture:</span><span class="info-value">${info.system.architecture}</span></div>
+                        <div class="info-item"><span class="info-label">Hostname:</span><span class="info-value">${info.system.hostname}</span></div>
+                        <div class="info-item"><span class="info-label">Uptime:</span><span class="info-value">${info.system.uptime}</span></div>
+                        <div class="info-item"><span class="info-label">Boot Time:</span><span class="info-value">${info.system.boot_time}</span></div>
+                    `;
+                    
+                    hardwareElement.innerHTML = `
+                        <div class="info-item"><span class="info-label">CPU:</span><span class="info-value">${info.hardware.cpu}</span></div>
+                        <div class="info-item"><span class="info-label">CPU Cores:</span><span class="info-value">${info.hardware.cpu_cores}</span></div>
+                        <div class="info-item"><span class="info-label">CPU Frequency:</span><span class="info-value">${info.hardware.cpu_freq} MHz</span></div>
+                        <div class="info-item"><span class="info-label">Total Memory:</span><span class="info-value">${formatFileSize(info.hardware.total_memory)}</span></div>
+                        <div class="info-item"><span class="info-label">Available Memory:</span><span class="info-value">${formatFileSize(info.hardware.available_memory)}</span></div>
+                    `;
+                })
+                .catch(error => console.error('Error fetching system info:', error));
+        }
+
+        // Update functions based on active tab
+        function updateActiveTab() {
+            const activeTab = document.querySelector('.nav-tab.active').dataset.tab;
+            
+            switch(activeTab) {
+                case 'system':
+                    updateSystemInfo();
+                    updateNetworkInfo();
+                    break;
+                case 'processes':
+                    updateProcessList();
+                    break;
+                case 'disk':
+                    updateDiskInfo();
+                    break;
+                case 'network':
+                    updateNetworkInterfaces();
+                    updateNetworkConnections();
+                    break;
+                case 'info':
+                    updateSystemInfoPage();
+                    break;
+            }
+        }
+
         // Initial call and set intervals
-        updateSystemInfo();
-        updateNetworkInfo();
-        setInterval(updateSystemInfo, 2000);
-        setInterval(updateNetworkInfo, 5000); // Network data updates less frequently
+        updateActiveTab();
+        setInterval(updateActiveTab, 3000); // Update every 3 seconds
     </script>
 
 </body>
@@ -552,9 +853,12 @@ async def get_network_info():
     return connections[:20]
 
 
-# --- File Cleaner Models ---
+# --- API Models ---
 class DeleteFilesRequest(BaseModel):
     files: List[str]
+
+class KillProcessRequest(BaseModel):
+    pid: int
 
 
 @app.get("/api/files/scan", response_model=List[Dict[str, Any]])
@@ -649,6 +953,132 @@ async def delete_files(request: DeleteFilesRequest):
         raise HTTPException(status_code=400, detail=f"Some files could not be deleted: {'; '.join(errors)}")
     
     return {"deleted_count": deleted_count, "message": f"Successfully deleted {deleted_count} file(s)"}
+
+
+@app.get("/api/processes", response_model=List[Dict[str, Any]])
+async def get_processes():
+    """Get list of running processes with CPU and memory usage."""
+    processes = []
+    try:
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
+            try:
+                pinfo = proc.info
+                if pinfo['cpu_percent'] is None:
+                    pinfo['cpu_percent'] = 0.0
+                if pinfo['memory_percent'] is None:
+                    pinfo['memory_percent'] = 0.0
+                    
+                processes.append({
+                    'pid': pinfo['pid'],
+                    'name': pinfo['name'],
+                    'cpu_percent': round(pinfo['cpu_percent'], 1),
+                    'memory_percent': round(pinfo['memory_percent'], 1)
+                })
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching processes: {str(e)}")
+    
+    # Sort by CPU usage (highest first) and limit to top 50
+    processes.sort(key=lambda x: x['cpu_percent'], reverse=True)
+    return processes[:50]
+
+
+@app.post("/api/processes/kill")
+async def kill_process(request: KillProcessRequest):
+    """Kill a process by PID."""
+    try:
+        proc = psutil.Process(request.pid)
+        proc.terminate()
+        return {"success": True, "message": f"Process {request.pid} terminated"}
+    except psutil.NoSuchProcess:
+        raise HTTPException(status_code=404, detail="Process not found")
+    except psutil.AccessDenied:
+        raise HTTPException(status_code=403, detail="Access denied - try running with sudo")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error killing process: {str(e)}")
+
+
+@app.get("/api/disk", response_model=List[Dict[str, Any]])
+async def get_disk_usage():
+    """Get disk usage information for all mounted drives."""
+    disks = []
+    try:
+        partitions = psutil.disk_partitions()
+        for partition in partitions:
+            try:
+                usage = psutil.disk_usage(partition.mountpoint)
+                disks.append({
+                    'device': partition.device,
+                    'mountpoint': partition.mountpoint,
+                    'fstype': partition.fstype,
+                    'total': usage.total,
+                    'used': usage.used,
+                    'free': usage.free,
+                    'percent': round((usage.used / usage.total) * 100, 1)
+                })
+            except PermissionError:
+                continue
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching disk info: {str(e)}")
+    
+    return disks
+
+
+@app.get("/api/network/interfaces", response_model=Dict[str, Any])
+async def get_network_interfaces():
+    """Get network interface statistics."""
+    try:
+        stats = psutil.net_io_counters(pernic=True)
+        return {name: {
+            'bytes_sent': stat.bytes_sent,
+            'bytes_recv': stat.bytes_recv,
+            'packets_sent': stat.packets_sent,
+            'packets_recv': stat.packets_recv,
+            'errin': stat.errin,
+            'errout': stat.errout,
+            'dropin': stat.dropin,
+            'dropout': stat.dropout
+        } for name, stat in stats.items()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching network interfaces: {str(e)}")
+
+
+@app.get("/api/system/info", response_model=Dict[str, Any])
+async def get_system_info_detailed():
+    """Get detailed system and hardware information."""
+    try:
+        # System info
+        boot_time = datetime.fromtimestamp(psutil.boot_time())
+        uptime = datetime.now() - boot_time
+        
+        # CPU info
+        cpu_freq = psutil.cpu_freq()
+        cpu_freq_current = cpu_freq.current if cpu_freq else 0
+        
+        # Memory info
+        memory = psutil.virtual_memory()
+        
+        return {
+            'system': {
+                'os': f"{platform.system()} {platform.release()}",
+                'version': platform.version(),
+                'architecture': platform.machine(),
+                'hostname': socket.gethostname(),
+                'uptime': str(uptime).split('.')[0],  # Remove microseconds
+                'boot_time': boot_time.strftime('%Y-%m-%d %H:%M:%S')
+            },
+            'hardware': {
+                'cpu': platform.processor() or f"{platform.machine()} CPU",
+                'cpu_cores': psutil.cpu_count(logical=False),
+                'cpu_threads': psutil.cpu_count(logical=True),
+                'cpu_freq': round(cpu_freq_current, 2) if cpu_freq_current else 'Unknown',
+                'total_memory': memory.total,
+                'available_memory': memory.available
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching system info: {str(e)}")
 
 
 # ==============================================================================
