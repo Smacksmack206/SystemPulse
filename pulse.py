@@ -316,13 +316,122 @@ html_content = """
         .network-tool { margin-bottom: 2rem; }
         .network-input { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
         .network-input input { flex: 1; padding: 0.5rem; border-radius: 4px; }
-        .network-output { max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.9rem; padding: 1rem; border-radius: 4px; }
+        .network-output { max-height: 300px; overflow-y: auto; overflow-x: auto; font-family: monospace; font-size: 0.9rem; padding: 1rem; border-radius: 4px; word-wrap: break-word; white-space: pre-wrap; }
         .theme-clarity .network-output { background-color: #F8F8F8; border: 1px solid #D1D1D6; }
         .theme-operator .network-output { background-color: #2D2D2D; border: 1px solid #5A5A5A; color: #E0E0E0; }
         .theme-neo-kyoto .network-output { background-color: rgba(255,255,255,0.05); border: 1px solid #F900F9; color: #F0F0F0; }
         .theme-ocean-sunset .network-output { background-color: rgba(46, 139, 139, 0.3); border: 1px solid #2E8B8B; color: #FFFFFF; }
         .theme-forest-fire .network-output { background-color: rgba(82, 183, 136, 0.3); border: 1px solid #52B788; color: #F1FAEE; }
         .theme-midnight-aurora .network-output { background-color: rgba(123, 44, 191, 0.3); border: 1px solid #7B2CBF; color: #E8E3FF; }
+
+        /* Terminal-specific styling */
+        .terminal-output { 
+            max-height: 600px; 
+            width: 100%;
+            max-width: 800px;
+            overflow-y: auto; 
+            overflow-x: hidden; 
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; 
+            font-size: 0.85rem; 
+            padding: 1.5rem; 
+            border-radius: 12px; 
+            background-color: #1a1a1a !important; 
+            color: #00ff00 !important; 
+            border: 3px solid #333 !important;
+            word-wrap: break-word; 
+            word-break: break-all;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.7), 0 4px 20px rgba(0,0,0,0.3);
+            box-sizing: border-box;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .terminal-output::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .terminal-output::-webkit-scrollbar-track {
+            background: #2a2a2a;
+            border-radius: 4px;
+        }
+
+        .terminal-output::-webkit-scrollbar-thumb {
+            background: #00ff00;
+            border-radius: 4px;
+        }
+
+        .terminal-output::-webkit-scrollbar-thumb:hover {
+            background: #00cc00;
+        }
+
+        /* Terminal container constraints */
+        .terminal-interface {
+            max-width: 100%;
+            overflow: hidden;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+        }
+
+        .terminal-input {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+            position: sticky;
+            top: 0;
+            background: inherit;
+            z-index: 10;
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+
+        .terminal-input input {
+            flex: 1;
+            padding: 0.75rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            border: 2px solid #333;
+            border-radius: 6px;
+            background-color: #2a2a2a;
+            color: #00ff00;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+
+        .terminal-input input:focus {
+            outline: none;
+            border-color: #00ff00;
+            box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+        }
+
+        .terminal-shortcuts {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        /* Ensure dashboard cards don't expand */
+        .dashboard {
+            overflow-x: hidden;
+        }
+
+        .card {
+            max-width: 100%;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
     </style>
 </head>
 <body class="theme-clarity"> 
@@ -337,6 +446,8 @@ html_content = """
                 <div class="nav-tab" data-tab="files">File Manager</div>
                 <div class="nav-tab" data-tab="containers">Containers</div>
                 <div class="nav-tab" data-tab="media">Media Player</div>
+                <div class="nav-tab" data-tab="services">Services</div>
+                <div class="nav-tab" data-tab="terminal">Terminal</div>
                 <div class="nav-tab" data-tab="info">System Info</div>
             </div>
             <div class="theme-selector">
@@ -570,6 +681,99 @@ html_content = """
                 </div>
             </div>
         </div>
+
+        <!-- Services Dashboard -->
+        <div id="services-dashboard" class="dashboard-section">
+            <div class="card">
+                <h2>VNC Server</h2>
+                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Manage VNC server for remote desktop access.</p>
+                <div class="service-controls">
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                        <button id="vnc-start-btn" class="btn btn-scan">Start VNC</button>
+                        <button id="vnc-stop-btn" class="btn btn-delete">Stop VNC</button>
+                        <button id="vnc-status-btn" class="btn btn-scan">Check Status</button>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label>VNC Port: </label>
+                        <input type="number" id="vnc-port" value="5900" min="5900" max="5999" style="width: 100px; padding: 0.25rem;">
+                        <label style="margin-left: 1rem;">Password: </label>
+                        <input type="password" id="vnc-password" placeholder="VNC password" style="width: 150px; padding: 0.25rem;">
+                    </div>
+                    <div id="vnc-output" class="network-output" style="max-height: 200px;">
+                        <p>VNC server not running</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Samba Shares</h2>
+                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Manage Samba file shares for network access.</p>
+                <div class="service-controls">
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                        <button id="samba-start-btn" class="btn btn-scan">Start Samba</button>
+                        <button id="samba-stop-btn" class="btn btn-delete">Stop Samba</button>
+                        <button id="samba-status-btn" class="btn btn-scan">Check Status</button>
+                        <button id="samba-shares-btn" class="btn btn-scan">List Shares</button>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <input type="text" id="share-path" placeholder="/path/to/share" style="flex: 1; padding: 0.25rem; margin-right: 0.5rem;">
+                        <input type="text" id="share-name" placeholder="share-name" style="width: 150px; padding: 0.25rem; margin-right: 0.5rem;">
+                        <button id="add-share-btn" class="btn btn-scan">Add Share</button>
+                    </div>
+                    <div id="samba-output" class="network-output" style="max-height: 250px;">
+                        <p>Click "Check Status" to see Samba status</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>System Services</h2>
+                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Monitor and manage system services.</p>
+                <div class="service-controls">
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                        <input type="text" id="service-name" placeholder="service-name" style="flex: 1; padding: 0.25rem;">
+                        <button id="service-start-btn" class="btn btn-scan">Start</button>
+                        <button id="service-stop-btn" class="btn btn-delete">Stop</button>
+                        <button id="service-status-btn" class="btn btn-scan">Status</button>
+                        <button id="service-list-btn" class="btn btn-scan">List All</button>
+                    </div>
+                    <div id="services-output" class="network-output" style="max-height: 300px;">
+                        <p>Enter a service name or click "List All" to see services</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Terminal Dashboard -->
+        <div id="terminal-dashboard" class="dashboard-section">
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>Terminal</h2>
+                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Execute commands on the host system terminal.</p>
+                <div class="terminal-interface">
+                    <div class="terminal-input">
+                        <input type="text" id="terminal-command" placeholder="Enter command (e.g., ls -la, ps aux, df -h)">
+                        <button id="terminal-execute-btn" class="btn btn-scan">Execute</button>
+                        <button id="clear-terminal-btn" class="btn btn-delete">Clear</button>
+                    </div>
+                    <div class="terminal-shortcuts">
+                        <button class="btn btn-small btn-scan" onclick="setCommand('ls -la')">ls -la</button>
+                        <button class="btn btn-small btn-scan" onclick="setCommand('ps aux')">ps aux</button>
+                        <button class="btn btn-small btn-scan" onclick="setCommand('df -h')">df -h</button>
+                        <button class="btn btn-small btn-scan" onclick="setCommand('top -l 1')">top</button>
+                        <button class="btn btn-small btn-scan" onclick="setCommand('netstat -an')">netstat</button>
+                        <button class="btn btn-small btn-scan" onclick="setCommand('whoami')">whoami</button>
+                        <button class="btn btn-small btn-scan" onclick="setCommand('pwd')">pwd</button>
+                        <button class="btn btn-small btn-scan" onclick="setCommand('uname -a')">system info</button>
+                        <button class="btn btn-small btn-scan" onclick="setCommand('sudo -l')">sudo</button>
+                        <button class="btn btn-small btn-scan" onclick="setCommand('history')">history</button>
+                    </div>
+                    <div id="terminal-output" class="terminal-output">
+                        <p style="color: #00ff00;">SystemPulse Terminal - Ready</p>
+                        <p style="color: #888;">Type commands above or click shortcuts</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
 
         <!-- System Info Dashboard -->
         <div id="info-dashboard" class="dashboard-section">
@@ -814,6 +1018,12 @@ html_content = """
                 case 'media':
                     initializeMediaPlayer();
                     break;
+                case 'services':
+                    initializeServices();
+                    break;
+                case 'terminal':
+                    initializeTerminal();
+                    break;
                 case 'info':
                     updateSystemInfoPage();
                     break;
@@ -838,11 +1048,12 @@ html_content = """
                         item.className = 'connection-item';
                         
                         item.innerHTML = `
-                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
                                 <span style="flex: 2;">${proc.name}</span>
                                 <span style="flex: 1; text-align: center;">PID: ${proc.pid}</span>
                                 <span style="flex: 1; text-align: center;">CPU: ${proc.cpu_percent}%</span>
-                                <span style="flex: 1; text-align: right;">MEM: ${proc.memory_percent}%</span>
+                                <span style="flex: 1; text-align: center;">MEM: ${proc.memory_percent}%</span>
+                                <button class="btn btn-delete btn-small" onclick="killProcess(${proc.pid})" style="margin-left: 0.5rem;">Kill</button>
                             </div>
                         `;
                         listElement.appendChild(item);
@@ -852,6 +1063,31 @@ html_content = """
                     console.error('Error fetching processes:', error);
                     document.getElementById('process-list').innerHTML = '<p>Error loading processes</p>';
                 });
+        }
+
+        function killProcess(pid) {
+            if (confirm(`Are you sure you want to kill process ${pid}?`)) {
+                fetch('/api/processes/kill', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ pid: pid })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(`Process ${pid} killed successfully`);
+                        updateProcessList(); // Refresh the list
+                    } else {
+                        alert(`Failed to kill process: ${data.message}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error killing process:', error);
+                    alert('Error killing process');
+                });
+            }
         }
 
         // --- Disk Analyzer Logic ---
@@ -1047,9 +1283,412 @@ html_content = """
                 });
         }
         
+        let currentMedia = null;
+        
         function initializeMediaPlayer() {
-            console.log('Media player initialized');
+            const fileInput = document.getElementById('media-file-input');
+            const playBtn = document.getElementById('play-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            const mediaDisplay = document.getElementById('media-display');
+            
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                // Clear previous media
+                if (currentMedia) {
+                    currentMedia.pause();
+                    currentMedia = null;
+                }
+                
+                const fileURL = URL.createObjectURL(file);
+                const fileType = file.type;
+                
+                mediaDisplay.innerHTML = '';
+                
+                if (fileType.startsWith('video/') || file.name.toLowerCase().endsWith('.mkv') || file.name.toLowerCase().endsWith('.avi') || file.name.toLowerCase().endsWith('.mov')) {
+                    // Video player - support common video formats including MKV
+                    currentMedia = document.createElement('video');
+                    currentMedia.src = fileURL;
+                    currentMedia.controls = true;
+                    currentMedia.style.maxWidth = '100%';
+                    currentMedia.style.maxHeight = '400px';
+                    
+                    // Add error handling for unsupported codecs
+                    currentMedia.addEventListener('error', (e) => {
+                        mediaDisplay.innerHTML = `
+                            <p>⚠️ Video format not supported by browser</p>
+                            <p>File: ${file.name}</p>
+                            <p>Try using VLC or another media player for this file type.</p>
+                        `;
+                    });
+                    
+                    mediaDisplay.appendChild(currentMedia);
+                } else if (fileType.startsWith('audio/')) {
+                    // Audio player
+                    currentMedia = document.createElement('audio');
+                    currentMedia.src = fileURL;
+                    currentMedia.controls = true;
+                    currentMedia.style.width = '100%';
+                    mediaDisplay.appendChild(currentMedia);
+                    
+                    // Add visual indicator for audio
+                    const audioInfo = document.createElement('div');
+                    audioInfo.innerHTML = `
+                        <h3>🎵 ${file.name}</h3>
+                        <p>Audio file loaded</p>
+                    `;
+                    audioInfo.style.marginBottom = '1rem';
+                    mediaDisplay.insertBefore(audioInfo, currentMedia);
+                } else if (fileType.startsWith('image/')) {
+                    // Image viewer
+                    const img = document.createElement('img');
+                    img.src = fileURL;
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '400px';
+                    img.style.objectFit = 'contain';
+                    mediaDisplay.appendChild(img);
+                    
+                    const imageInfo = document.createElement('div');
+                    imageInfo.innerHTML = `<h3>🖼️ ${file.name}</h3>`;
+                    imageInfo.style.marginBottom = '1rem';
+                    mediaDisplay.insertBefore(imageInfo, img);
+                } else {
+                    mediaDisplay.innerHTML = '<p>Unsupported file type</p>';
+                    return;
+                }
+                
+                // Enable controls
+                playBtn.disabled = false;
+                pauseBtn.disabled = false;
+                stopBtn.disabled = false;
+            });
+            
+            playBtn.addEventListener('click', () => {
+                if (currentMedia && currentMedia.play) {
+                    currentMedia.play();
+                }
+            });
+            
+            pauseBtn.addEventListener('click', () => {
+                if (currentMedia && currentMedia.pause) {
+                    currentMedia.pause();
+                }
+            });
+            
+            stopBtn.addEventListener('click', () => {
+                if (currentMedia) {
+                    currentMedia.pause();
+                    currentMedia.currentTime = 0;
+                }
+            });
         }
+
+        function initializeServices() {
+            // VNC Server controls
+            document.getElementById('vnc-start-btn').onclick = () => {
+                const port = document.getElementById('vnc-port').value;
+                const password = document.getElementById('vnc-password').value;
+                
+                fetch('/api/services/vnc/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ port: parseInt(port), password: password })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('vnc-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('vnc-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            document.getElementById('vnc-stop-btn').onclick = () => {
+                fetch('/api/services/vnc/stop', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('vnc-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('vnc-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            document.getElementById('vnc-status-btn').onclick = () => {
+                fetch('/api/services/vnc/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('vnc-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('vnc-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            // Samba controls
+            document.getElementById('samba-start-btn').onclick = () => {
+                fetch('/api/services/samba/start', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('samba-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('samba-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            document.getElementById('samba-stop-btn').onclick = () => {
+                fetch('/api/services/samba/stop', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('samba-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('samba-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            document.getElementById('samba-status-btn').onclick = () => {
+                fetch('/api/services/samba/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('samba-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('samba-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            document.getElementById('samba-shares-btn').onclick = () => {
+                fetch('/api/services/samba/shares')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('samba-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('samba-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            document.getElementById('add-share-btn').onclick = () => {
+                const path = document.getElementById('share-path').value;
+                const name = document.getElementById('share-name').value;
+                
+                if (!path || !name) {
+                    alert('Please enter both path and share name');
+                    return;
+                }
+                
+                fetch('/api/services/samba/add-share', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: path, name: name })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('samba-output').innerHTML = data.output || data.message;
+                    document.getElementById('share-path').value = '';
+                    document.getElementById('share-name').value = '';
+                })
+                .catch(error => {
+                    document.getElementById('samba-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            // System services controls
+            document.getElementById('service-start-btn').onclick = () => {
+                const serviceName = document.getElementById('service-name').value;
+                if (!serviceName) return;
+                
+                fetch('/api/services/system/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ service: serviceName })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('services-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('services-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            document.getElementById('service-stop-btn').onclick = () => {
+                const serviceName = document.getElementById('service-name').value;
+                if (!serviceName) return;
+                
+                fetch('/api/services/system/stop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ service: serviceName })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('services-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('services-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            document.getElementById('service-status-btn').onclick = () => {
+                const serviceName = document.getElementById('service-name').value;
+                if (!serviceName) return;
+                
+                fetch(`/api/services/system/status?service=${serviceName}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('services-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('services-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            document.getElementById('service-list-btn').onclick = () => {
+                fetch('/api/services/system/list')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('services-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('services-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+        }
+
+        let terminalInitialized = false;
+        let globalExecuting = false;
+        
+        function initializeTerminal() {
+            // Prevent multiple initializations
+            if (terminalInitialized) {
+                console.log('Terminal already initialized, skipping...');
+                return;
+            }
+            
+            const commandInput = document.getElementById('terminal-command');
+            const executeBtn = document.getElementById('terminal-execute-btn');
+            const clearBtn = document.getElementById('clear-terminal-btn');
+            const terminalOutput = document.getElementById('terminal-output');
+            
+            // Check if elements exist
+            if (!commandInput || !executeBtn || !clearBtn || !terminalOutput) {
+                console.error('Terminal elements not found:', {
+                    commandInput: !!commandInput,
+                    executeBtn: !!executeBtn,
+                    clearBtn: !!clearBtn,
+                    terminalOutput: !!terminalOutput
+                });
+                return;
+            }
+            
+            terminalInitialized = true;
+            console.log('Terminal initialized successfully');
+            
+            // Auto-focus the input when terminal is initialized
+            setTimeout(() => commandInput.focus(), 100);
+            
+            // Execute command on Enter key
+            commandInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    executeCommand();
+                }
+            });
+            
+            let isExecuting = false;
+            
+            function executeCommand() {
+                const command = commandInput.value.trim();
+                if (!command || isExecuting || globalExecuting) return;
+                
+                isExecuting = true;
+                globalExecuting = true;
+                console.log('Executing command:', command); // Debug log
+                
+                // Add command to output
+                const commandLine = document.createElement('div');
+                commandLine.innerHTML = `<span style="color: #00ff00;">$ ${command}</span>`;
+                commandLine.style.wordWrap = 'break-word';
+                commandLine.style.wordBreak = 'break-all';
+                commandLine.style.maxWidth = '100%';
+                terminalOutput.appendChild(commandLine);
+                
+                executeBtn.disabled = true;
+                executeBtn.textContent = 'Executing...';
+                
+                fetch('/api/terminal/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: command })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const outputDiv = document.createElement('div');
+                    outputDiv.style.whiteSpace = 'pre-wrap';
+                    outputDiv.style.wordWrap = 'break-word';
+                    outputDiv.style.wordBreak = 'break-all';
+                    outputDiv.style.marginBottom = '1rem';
+                    outputDiv.style.maxWidth = '100%';
+                    outputDiv.style.overflow = 'hidden';
+                    
+                    if (data.error) {
+                        outputDiv.style.color = '#ff6b6b';
+                        outputDiv.textContent = data.error;
+                    } else {
+                        outputDiv.style.color = '#ffffff';
+                        outputDiv.textContent = data.output || 'Command executed successfully';
+                    }
+                    
+                    terminalOutput.appendChild(outputDiv);
+                    terminalOutput.scrollTop = terminalOutput.scrollHeight;
+                    
+                    executeBtn.disabled = false;
+                    executeBtn.textContent = 'Execute';
+                    commandInput.value = '';
+                    commandInput.focus(); // Keep input focused
+                    isExecuting = false; // Reset execution flag
+                    globalExecuting = false; // Reset global flag
+                    
+                    // Scroll input into view if needed
+                    commandInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                })
+                .catch(error => {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.color = '#ff6b6b';
+                    errorDiv.textContent = `Error: ${error.message}`;
+                    terminalOutput.appendChild(errorDiv);
+                    terminalOutput.scrollTop = terminalOutput.scrollHeight;
+                    
+                    executeBtn.disabled = false;
+                    executeBtn.textContent = 'Execute';
+                    commandInput.focus(); // Keep input focused
+                    isExecuting = false; // Reset execution flag
+                    globalExecuting = false; // Reset global flag
+                });
+            }
+            
+            // Set up event listeners (remove any existing ones first)
+            executeBtn.onclick = null;
+            clearBtn.onclick = null;
+            
+            executeBtn.onclick = executeCommand;
+            clearBtn.onclick = () => {
+                terminalOutput.innerHTML = '<p style="color: #00ff00;">SystemPulse Terminal - Ready</p><p style="color: #888;">Type commands above or click shortcuts</p>';
+            };
+        }
+
+        function setCommand(command) {
+            const input = document.getElementById('terminal-command');
+            input.value = command;
+            input.focus();
+            input.setSelectionRange(command.length, command.length); // Cursor at end
+        }
+
+
         
         function updateSystemInfoPage() {
             fetch('/api/system/info')
@@ -1173,6 +1812,146 @@ html_content = """
             loadFileBrowser(parentPath);
         };
         document.getElementById('refresh-btn').onclick = () => loadFileBrowser(currentPath);
+
+        // Network tools event listeners
+        let pingProcess = null;
+        
+        document.getElementById('ping-btn').onclick = () => {
+            const host = document.getElementById('ping-host').value;
+            if (!host) return;
+            
+            document.getElementById('ping-btn').disabled = true;
+            document.getElementById('ping-stop-btn').disabled = false;
+            document.getElementById('ping-output').innerHTML = `Pinging ${host}...\n`;
+            
+            fetch('/api/network/ping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ host: host })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('ping-output').innerHTML = data.output;
+                document.getElementById('ping-btn').disabled = false;
+                document.getElementById('ping-stop-btn').disabled = true;
+            })
+            .catch(error => {
+                document.getElementById('ping-output').innerHTML = `Error: ${error.message}`;
+                document.getElementById('ping-btn').disabled = false;
+                document.getElementById('ping-stop-btn').disabled = true;
+            });
+        };
+        
+        document.getElementById('traceroute-btn').onclick = () => {
+            const host = document.getElementById('traceroute-host').value;
+            if (!host) return;
+            
+            document.getElementById('traceroute-btn').disabled = true;
+            document.getElementById('traceroute-output').innerHTML = `Tracing route to ${host}...\n`;
+            
+            fetch('/api/network/traceroute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ host: host })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('traceroute-output').innerHTML = data.output;
+                document.getElementById('traceroute-btn').disabled = false;
+            })
+            .catch(error => {
+                document.getElementById('traceroute-output').innerHTML = `Error: ${error.message}`;
+                document.getElementById('traceroute-btn').disabled = false;
+            });
+        };
+
+        // Load network interfaces for packet capture
+        fetch('/api/network/interfaces')
+            .then(response => response.json())
+            .then(interfaces => {
+                const select = document.getElementById('capture-interface');
+                select.innerHTML = '<option value="">Select interface...</option>';
+                Object.keys(interfaces).forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    select.appendChild(option);
+                });
+            });
+
+        // Docker Hub search event listener
+        document.getElementById('docker-search-btn').onclick = () => {
+            const query = document.getElementById('docker-search-input').value;
+            if (!query) return;
+            
+            document.getElementById('docker-search-btn').disabled = true;
+            document.getElementById('docker-search-results').innerHTML = '<p>Searching Docker Hub...</p>';
+            
+            fetch('/api/docker/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: query })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultsElement = document.getElementById('docker-search-results');
+                if (data.error) {
+                    resultsElement.innerHTML = `<p>Error: ${data.error}</p>`;
+                } else if (data.results.length === 0) {
+                    resultsElement.innerHTML = '<p>No results found</p>';
+                } else {
+                    resultsElement.innerHTML = '';
+                    data.results.forEach(image => {
+                        const item = document.createElement('div');
+                        item.className = 'file-browser-item';
+                        item.innerHTML = `
+                            <span class="file-icon">🐳</span>
+                            <div class="file-info">
+                                <span class="file-name">${image.name}</span>
+                                <span class="file-size-small">${image.star_count} ⭐</span>
+                            </div>
+                            <span class="file-date">${image.description || 'No description'}</span>
+                        `;
+                        resultsElement.appendChild(item);
+                    });
+                }
+                document.getElementById('docker-search-btn').disabled = false;
+            })
+            .catch(error => {
+                document.getElementById('docker-search-results').innerHTML = `<p>Error: ${error.message}</p>`;
+                document.getElementById('docker-search-btn').disabled = false;
+            });
+        };
+
+        // Packet capture event listeners
+        document.getElementById('capture-start-btn').onclick = () => {
+            const interface = document.getElementById('capture-interface').value;
+            if (!interface) {
+                alert('Please select a network interface');
+                return;
+            }
+            
+            document.getElementById('capture-start-btn').disabled = true;
+            document.getElementById('capture-stop-btn').disabled = false;
+            document.getElementById('capture-output').innerHTML = `Starting packet capture on ${interface}...\n`;
+            
+            fetch('/api/network/capture/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ interface: interface, count: 20 })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('capture-output').innerHTML = data.output;
+                document.getElementById('capture-start-btn').disabled = false;
+                document.getElementById('capture-stop-btn').disabled = true;
+            })
+            .catch(error => {
+                document.getElementById('capture-output').innerHTML = `Error: ${error.message}`;
+                document.getElementById('capture-start-btn').disabled = false;
+                document.getElementById('capture-stop-btn').disabled = true;
+            });
+        };
 
         // Initialize file browser with home directory
         loadFileBrowser('/Users');
@@ -1392,6 +2171,28 @@ async def get_processes():
     return processes[:50]
 
 
+@app.post("/api/processes/kill")
+async def kill_process(request: KillProcessRequest):
+    """Kill a process by PID."""
+    try:
+        process = psutil.Process(request.pid)
+        process.terminate()
+        # Wait a bit to see if it terminates gracefully
+        try:
+            process.wait(timeout=3)
+        except psutil.TimeoutExpired:
+            # Force kill if it doesn't terminate gracefully
+            process.kill()
+        
+        return {"success": True, "message": f"Process {request.pid} killed successfully"}
+    except psutil.NoSuchProcess:
+        raise HTTPException(status_code=404, detail=f"Process {request.pid} not found")
+    except psutil.AccessDenied:
+        raise HTTPException(status_code=403, detail=f"Access denied to kill process {request.pid}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error killing process: {str(e)}")
+
+
 @app.get("/api/disk", response_model=List[Dict[str, Any]])
 async def get_disk_usage():
     """Get disk usage information for all mounted drives."""
@@ -1435,6 +2236,83 @@ async def get_network_interfaces():
         } for name, stat in stats.items()}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching network interfaces: {str(e)}")
+
+
+class NetworkToolRequest(BaseModel):
+    host: str
+
+@app.post("/api/network/ping")
+async def ping_host(request: NetworkToolRequest):
+    """Ping a host and return the output."""
+    try:
+        result = subprocess.run(
+            ['ping', '-c', '4', request.host],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        return {"output": result.stdout + result.stderr}
+    except subprocess.TimeoutExpired:
+        return {"output": "Ping timed out"}
+    except Exception as e:
+        return {"output": f"Error: {str(e)}"}
+
+@app.post("/api/network/traceroute")
+async def traceroute_host(request: NetworkToolRequest):
+    """Traceroute to a host and return the output."""
+    try:
+        # Use appropriate command for each OS
+        if platform.system() == 'Darwin':  # macOS
+            cmd = ['traceroute', '-m', '15', request.host]
+        elif platform.system() == 'Windows':
+            cmd = ['tracert', request.host]
+        else:  # Linux
+            cmd = ['traceroute', request.host]
+            
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=120  # Increased to 2 minutes
+        )
+        
+        if result.returncode != 0 and result.stderr:
+            return {"output": f"Error: {result.stderr}"}
+        
+        return {"output": result.stdout or result.stderr}
+    except subprocess.TimeoutExpired:
+        return {"output": "Traceroute timed out after 30 seconds"}
+    except FileNotFoundError:
+        return {"output": "Traceroute command not found. Please install network utilities."}
+    except Exception as e:
+        return {"output": f"Error: {str(e)}"}
+
+
+class PacketCaptureRequest(BaseModel):
+    interface: str
+    count: int = 10
+
+@app.post("/api/network/capture/start")
+async def start_packet_capture(request: PacketCaptureRequest):
+    """Start packet capture on specified interface."""
+    try:
+        # Use tcpdump for packet capture (requires sudo)
+        cmd = ['sudo', 'tcpdump', '-i', request.interface, '-c', str(request.count), '-n']
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode != 0:
+            return {"output": f"Error: {result.stderr}"}
+        
+        return {"output": result.stdout + result.stderr}
+    except subprocess.TimeoutExpired:
+        return {"output": "Packet capture timed out"}
+    except Exception as e:
+        return {"output": f"Error: {str(e)}"}
 
 
 @app.get("/api/files/browse")
@@ -1576,18 +2454,20 @@ async def get_containers():
     """Get list of Docker containers."""
     try:
         # Check if Docker is installed and daemon is running
-        result = subprocess.run(['docker', 'version'], capture_output=True, text=True, timeout=5)
+        result = subprocess.run(['docker', 'version'], capture_output=True, text=True, timeout=15)
         if result.returncode != 0:
             if 'Cannot connect to the Docker daemon' in result.stderr:
-                return {'containers': [], 'docker_installed': True, 'error': 'Docker daemon not running. Start Docker Desktop.'}
-            return {'containers': [], 'docker_installed': False, 'message': 'Docker not installed'}
+                return {'containers': [], 'docker_installed': True, 'error': 'Docker daemon not running. Start Docker Desktop from Applications.'}
+            elif 'docker.sock' in result.stderr:
+                return {'containers': [], 'docker_installed': True, 'error': 'Docker Desktop not running. Launch Docker Desktop app.'}
+            return {'containers': [], 'docker_installed': False, 'message': 'Docker not installed. Install Docker Desktop from docker.com'}
         
         # Try different format approaches for better compatibility
         result = subprocess.run(
             ['docker', 'ps', '-a', '--format', 'table {{.ID}}\\t{{.Names}}\\t{{.Image}}\\t{{.Status}}\\t{{.Ports}}'],
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=30
         )
         
         if result.returncode != 0:
@@ -1619,7 +2499,7 @@ async def get_containers():
         return {'containers': containers, 'docker_installed': True}
         
     except subprocess.TimeoutExpired:
-        return {'containers': [], 'docker_installed': True, 'error': 'Docker command timed out. Check Docker Desktop.'}
+        return {'containers': [], 'docker_installed': True, 'error': 'Docker command timed out. Try: docker ps -a'}
     except FileNotFoundError:
         return {'containers': [], 'docker_installed': False, 'message': 'Docker not found. Install Docker Desktop.'}
     except Exception as e:
@@ -1634,7 +2514,7 @@ async def get_docker_images():
             ['docker', 'images', '--format', 'table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.CreatedAt}}\\t{{.Size}}'],
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=30
         )
         
         if result.returncode != 0:
@@ -1658,9 +2538,353 @@ async def get_docker_images():
         return {'images': images}
         
     except subprocess.TimeoutExpired:
-        return {'images': [], 'error': 'Command timed out'}
+        return {'images': [], 'error': 'Docker images command timed out. Try: docker images'}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting images: {str(e)}")
+
+
+class DockerSearchRequest(BaseModel):
+    query: str
+
+@app.post("/api/docker/search")
+async def search_docker_hub(request: DockerSearchRequest):
+    """Search Docker Hub for images."""
+    try:
+        result = subprocess.run(
+            ['docker', 'search', '--limit', '10', request.query],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        
+        if result.returncode != 0:
+            return {'results': [], 'error': result.stderr}
+        
+        results = []
+        lines = result.stdout.strip().split('\n')
+        
+        if len(lines) > 1:  # Skip header
+            for line in lines[1:]:
+                parts = line.split()
+                if len(parts) >= 5:
+                    # Join description parts (everything after the 4th column)
+                    description = ' '.join(parts[4:]) if len(parts) > 4 else ''
+                    results.append({
+                        'name': parts[0],
+                        'description': description,
+                        'star_count': parts[2],
+                        'official': '[OK]' in parts[3],
+                        'automated': '[OK]' in parts[4] if len(parts) > 4 else False
+                    })
+        
+        return {'results': results}
+        
+    except subprocess.TimeoutExpired:
+        return {'results': [], 'error': 'Search timed out'}
+    except Exception as e:
+        return {'results': [], 'error': f"Error searching Docker Hub: {str(e)}"}
+
+# Services API Models
+class VNCStartRequest(BaseModel):
+    port: int = 5900
+    password: str = ""
+
+class ServiceRequest(BaseModel):
+    service: str
+
+class SambaShareRequest(BaseModel):
+    path: str
+    name: str
+
+# VNC Server API Endpoints
+@app.post("/api/services/vnc/start")
+async def start_vnc_server(request: VNCStartRequest):
+    """Start VNC/Screen Sharing server."""
+    try:
+        if platform.system() == "Darwin":  # macOS
+            # For macOS, provide instructions since programmatic enabling requires special permissions
+            try:
+                # Check if Screen Sharing is already enabled
+                result = subprocess.run(['launchctl', 'list', 'com.apple.screensharing'], 
+                                      capture_output=True, text=True, timeout=10)
+                
+                if result.returncode == 0:
+                    return {"message": "Screen Sharing appears to be enabled", 
+                           "output": "Screen Sharing is running.\nConnect using VNC viewer to this machine's IP address on port 5900.\n\nTo verify: System Preferences > Sharing > Screen Sharing should be checked."}
+                else:
+                    return {"message": "Screen Sharing not enabled", 
+                           "output": "To enable Screen Sharing on macOS:\n\n1. Open System Preferences (or System Settings on newer macOS)\n2. Go to Sharing\n3. Check 'Screen Sharing' or 'Remote Management'\n4. Set access permissions as needed\n5. Connect using VNC viewer to this machine's IP on port 5900\n\nNote: Programmatic enabling requires special system permissions."}
+            except:
+                return {"message": "macOS Screen Sharing Instructions", 
+                       "output": "To enable Screen Sharing:\n1. Open System Preferences > Sharing\n2. Check 'Screen Sharing'\n3. Connect using VNC viewer to this machine's IP on port 5900"}
+        else:
+            # Linux VNC server
+            result = subprocess.run(
+                ['vncserver', f':{request.port - 5900}', '-geometry', '1920x1080', '-depth', '24'],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode == 0:
+                return {"message": f"VNC server started on port {request.port}", "output": result.stdout}
+            else:
+                return {"message": "Failed to start VNC server", "output": result.stderr}
+            
+    except subprocess.TimeoutExpired:
+        return {"message": "VNC start command timed out", "output": ""}
+    except FileNotFoundError:
+        if platform.system() == "Darwin":
+            return {"message": "macOS Screen Sharing", 
+                   "output": "Enable Screen Sharing in System Preferences > Sharing > Screen Sharing"}
+        else:
+            return {"message": "VNC server not installed", "output": "Install with: apt install tightvncserver"}
+    except Exception as e:
+        return {"message": f"Error with VNC: {str(e)}", "output": ""}
+
+@app.post("/api/services/vnc/stop")
+async def stop_vnc_server():
+    """Stop VNC/Screen Sharing server."""
+    try:
+        if platform.system() == "Darwin":  # macOS
+            # Try to disable Screen Sharing on macOS
+            result = subprocess.run([
+                'sudo', 'launchctl', 'unload', '-w', 
+                '/System/Library/LaunchDaemons/com.apple.screensharing.plist'
+            ], capture_output=True, text=True, timeout=10)
+            
+            # Also try the newer way
+            result2 = subprocess.run([
+                'sudo', 'systemsetup', '-setremotelogin', 'off'
+            ], capture_output=True, text=True, timeout=10)
+            
+            return {"message": "Attempting to disable macOS Screen Sharing", 
+                   "output": f"Screen Sharing disable command executed.\nTo manually disable: System Preferences > Sharing > Uncheck Screen Sharing\n\nOutput: {result.stdout + result.stderr}"}
+        else:
+            # Linux VNC server
+            result = subprocess.run(['vncserver', '-kill', ':0'], capture_output=True, text=True, timeout=10)
+            return {"message": "VNC server stopped", "output": result.stdout + result.stderr}
+    except FileNotFoundError:
+        if platform.system() == "Darwin":
+            return {"message": "macOS Screen Sharing", "output": "Disable Screen Sharing in System Preferences > Sharing > Screen Sharing"}
+        else:
+            return {"message": "VNC server not found", "output": ""}
+    except Exception as e:
+        return {"message": f"Error stopping VNC: {str(e)}", "output": ""}
+
+@app.get("/api/services/vnc/status")
+async def vnc_status():
+    """Get VNC/Screen Sharing server status."""
+    try:
+        if platform.system() == "Darwin":  # macOS
+            # Check if Screen Sharing is enabled
+            result = subprocess.run(['launchctl', 'list', 'com.apple.screensharing'], capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                # Also check if the service is actually running
+                ps_result = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
+                screen_sharing = [line for line in ps_result.stdout.split('\n') if 'screensharing' in line.lower() or 'vnc' in line.lower()]
+                
+                status_output = f"Screen Sharing service status:\n{result.stdout}\n"
+                if screen_sharing:
+                    status_output += f"\nRunning processes:\n" + '\n'.join(screen_sharing)
+                
+                return {"message": "macOS Screen Sharing status", "output": status_output}
+            else:
+                return {"message": "Screen Sharing not enabled", "output": "Enable in System Preferences > Sharing > Screen Sharing"}
+        else:
+            # Linux VNC server
+            result = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
+            vnc_processes = [line for line in result.stdout.split('\n') if 'Xvnc' in line or 'vncserver' in line]
+            
+            if vnc_processes:
+                return {"message": "VNC server is running", "output": '\n'.join(vnc_processes)}
+            else:
+                return {"message": "VNC server is not running", "output": "No VNC processes found"}
+    except Exception as e:
+        return {"message": f"Error checking VNC status: {str(e)}", "output": ""}
+
+# Samba API Endpoints
+@app.post("/api/services/samba/start")
+async def start_samba():
+    """Start Samba service."""
+    try:
+        if platform.system() == "Darwin":  # macOS
+            # For macOS, provide instructions for File Sharing
+            return {"message": "macOS File Sharing Instructions", 
+                   "output": "To enable File Sharing (SMB) on macOS:\n\n1. Open System Preferences > Sharing\n2. Check 'File Sharing'\n3. Click 'Options...' and enable 'Share files and folders using SMB'\n4. Select user accounts to share via SMB\n5. Access from other devices using smb://[this-mac-ip]\n\nNote: macOS uses built-in SMB sharing, not traditional Samba service."}
+        else:  # Linux
+            result = subprocess.run(['sudo', 'systemctl', 'start', 'smbd'], capture_output=True, text=True, timeout=10)
+            return {"message": "Samba service started", "output": result.stdout + result.stderr}
+    except Exception as e:
+        return {"message": f"Error starting Samba: {str(e)}", "output": ""}
+
+@app.post("/api/services/samba/stop")
+async def stop_samba():
+    """Stop Samba service."""
+    try:
+        if platform.system() == "Darwin":  # macOS
+            result = subprocess.run(['sudo', 'launchctl', 'unload', '/System/Library/LaunchDaemons/com.apple.smbd.plist'], 
+                                  capture_output=True, text=True, timeout=10)
+        else:  # Linux
+            result = subprocess.run(['sudo', 'systemctl', 'stop', 'smbd'], capture_output=True, text=True, timeout=10)
+        
+        return {"message": "Samba service stopped", "output": result.stdout + result.stderr}
+    except Exception as e:
+        return {"message": f"Error stopping Samba: {str(e)}", "output": ""}
+
+@app.get("/api/services/samba/status")
+async def samba_status():
+    """Get Samba service status."""
+    try:
+        if platform.system() == "Darwin":  # macOS
+            # Check for macOS File Sharing
+            result = subprocess.run(['launchctl', 'list'], capture_output=True, text=True, timeout=10)
+            
+            # Look for file sharing related services
+            sharing_services = []
+            for line in result.stdout.split('\n'):
+                if any(service in line.lower() for service in ['smb', 'sharing', 'netfs']):
+                    sharing_services.append(line)
+            
+            if sharing_services:
+                return {"message": "macOS File Sharing Status", 
+                       "output": f"File sharing related services:\n" + '\n'.join(sharing_services) + 
+                                f"\n\nTo check: System Preferences > Sharing > File Sharing"}
+            else:
+                return {"message": "File Sharing not detected", 
+                       "output": "Enable File Sharing in System Preferences > Sharing > File Sharing"}
+        else:  # Linux
+            result = subprocess.run(['systemctl', 'status', 'smbd'], capture_output=True, text=True, timeout=10)
+            return {"message": "Samba status", "output": result.stdout + result.stderr}
+    except Exception as e:
+        return {"message": f"Error checking Samba status: {str(e)}", "output": ""}
+
+@app.get("/api/services/samba/shares")
+async def list_samba_shares():
+    """List Samba shares."""
+    try:
+        result = subprocess.run(['smbclient', '-L', 'localhost', '-N'], capture_output=True, text=True, timeout=10)
+        return {"message": "Samba shares", "output": result.stdout + result.stderr}
+    except FileNotFoundError:
+        if platform.system() == "Darwin":
+            return {"message": "smbclient not found. Install with: brew install samba", "output": ""}
+        else:
+            return {"message": "smbclient not found. Install with: apt install smbclient", "output": ""}
+    except Exception as e:
+        return {"message": f"Error listing shares: {str(e)}", "output": ""}
+
+@app.post("/api/services/samba/add-share")
+async def add_samba_share(request: SambaShareRequest):
+    """Add a new Samba share."""
+    try:
+        # This is a simplified example - in practice, you'd modify smb.conf
+        share_config = f"""
+[{request.name}]
+    path = {request.path}
+    browseable = yes
+    read only = no
+    guest ok = yes
+"""
+        return {"message": f"Share configuration for '{request.name}'", "output": share_config}
+    except Exception as e:
+        return {"message": f"Error adding share: {str(e)}", "output": ""}
+
+# System Services API Endpoints
+@app.post("/api/services/system/start")
+async def start_system_service(request: ServiceRequest):
+    """Start a system service."""
+    try:
+        if platform.system() == "Darwin":  # macOS
+            result = subprocess.run(['sudo', 'launchctl', 'load', f'/System/Library/LaunchDaemons/{request.service}.plist'], 
+                                  capture_output=True, text=True, timeout=10)
+        else:  # Linux
+            result = subprocess.run(['sudo', 'systemctl', 'start', request.service], capture_output=True, text=True, timeout=10)
+        
+        return {"message": f"Service {request.service} started", "output": result.stdout + result.stderr}
+    except Exception as e:
+        return {"message": f"Error starting service: {str(e)}", "output": ""}
+
+@app.post("/api/services/system/stop")
+async def stop_system_service(request: ServiceRequest):
+    """Stop a system service."""
+    try:
+        if platform.system() == "Darwin":  # macOS
+            result = subprocess.run(['sudo', 'launchctl', 'unload', f'/System/Library/LaunchDaemons/{request.service}.plist'], 
+                                  capture_output=True, text=True, timeout=10)
+        else:  # Linux
+            result = subprocess.run(['sudo', 'systemctl', 'stop', request.service], capture_output=True, text=True, timeout=10)
+        
+        return {"message": f"Service {request.service} stopped", "output": result.stdout + result.stderr}
+    except Exception as e:
+        return {"message": f"Error stopping service: {str(e)}", "output": ""}
+
+@app.get("/api/services/system/status")
+async def system_service_status(service: str):
+    """Get system service status."""
+    try:
+        if platform.system() == "Darwin":  # macOS
+            result = subprocess.run(['launchctl', 'list', service], capture_output=True, text=True, timeout=10)
+        else:  # Linux
+            result = subprocess.run(['systemctl', 'status', service], capture_output=True, text=True, timeout=10)
+        
+        return {"message": f"Status for {service}", "output": result.stdout + result.stderr}
+    except Exception as e:
+        return {"message": f"Error checking service status: {str(e)}", "output": ""}
+
+@app.get("/api/services/system/list")
+async def list_system_services():
+    """List all system services."""
+    try:
+        if platform.system() == "Darwin":  # macOS
+            result = subprocess.run(['launchctl', 'list'], capture_output=True, text=True, timeout=15)
+        else:  # Linux
+            result = subprocess.run(['systemctl', 'list-units', '--type=service'], capture_output=True, text=True, timeout=15)
+        
+        return {"message": "System services", "output": result.stdout}
+    except Exception as e:
+        return {"message": f"Error listing services: {str(e)}", "output": ""}
+
+# Terminal API Endpoints
+class TerminalRequest(BaseModel):
+    command: str
+
+@app.post("/api/terminal/execute")
+async def execute_terminal_command(request: TerminalRequest):
+    """Execute a terminal command."""
+    try:
+        # Execute the command (all commands allowed - user has sudo access)
+        # Use bash with shell configuration sourced for aliases and functions
+        shell_cmd = f"source ~/.bashrc 2>/dev/null || source ~/.bash_profile 2>/dev/null || true; {request.command}"
+        result = subprocess.run(
+            ['/bin/bash', '-c', shell_cmd],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=os.path.expanduser('~'),  # Start in home directory
+            env=os.environ.copy()  # Preserve environment variables
+        )
+        
+        output = result.stdout
+        if result.stderr:
+            output += f"\nSTDERR:\n{result.stderr}"
+        
+        if result.returncode != 0:
+            return {"output": output or f"Command '{request.command}' exited with code {result.returncode}"}
+        
+        # Handle empty output better
+        if not output.strip():
+            if request.command.strip() in ['alias', 'history', 'jobs', 'set']:
+                return {"output": f"No output from '{request.command}' (command executed successfully)"}
+            else:
+                return {"output": "(no output)"}
+        
+        return {"output": output}
+        
+    except subprocess.TimeoutExpired:
+        return {"error": "Command timed out after 30 seconds"}
+    except Exception as e:
+        return {"error": f"Error executing command: {str(e)}"}
 
 # ==============================================================================
 # PART 3: MAIN EXECUTION
@@ -1673,6 +2897,6 @@ if __name__ == "__main__":
 
     # Step 2: Start the web server.
     print("\nStarting SystemPulse server...")
-    print("Access the dashboard at http://127.0.0.1:3001")
+    print("Access the dashboard at http://127.0.0.1:3004")
     print("Press CTRL+C to stop the server.")
-    uvicorn.run(app, host="127.0.0.1", port=3001)
+    uvicorn.run(app, host="127.0.0.1", port=3004)
