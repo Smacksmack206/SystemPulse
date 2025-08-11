@@ -60,30 +60,18 @@ FILE_CONTENT = {
         /build
         *.spec
         venv/
-    """),
-    "src/main.py": textwrap.dedent("""
-        # This file will eventually contain the main application logic.
-        # For now, the server is run from the root start_systempulse.py script.
-        print("SystemPulse main entry point.")
     """)
 }
 
 def setup_project_if_needed():
     """Checks for the project root directory and creates the full structure if not found."""
     if os.path.exists(PROJECT_ROOT):
-        # print(f"Project directory '{PROJECT_ROOT}' already exists. Skipping setup.")
         return
 
     print(f"Creating project structure in './{PROJECT_ROOT}'...")
     os.makedirs(PROJECT_ROOT)
 
-    # Create root files
-    for filename, content in FILE_CONTENT.items():
-        with open(os.path.join(PROJECT_ROOT, filename), 'w') as f:
-            f.write(content.strip())
-        print(f"  Created file: {os.path.join(PROJECT_ROOT, filename)}")
-
-    # Create directories and nested files
+    # Create directories and nested files first
     for parent, items in PROJECT_STRUCTURE.items():
         parent_path = os.path.join(PROJECT_ROOT, parent)
         os.makedirs(parent_path, exist_ok=True)
@@ -115,11 +103,12 @@ def setup_project_if_needed():
                     if item.endswith('.py'):
                         f.write("# Placeholder\n")
                 print(f"  Created file: {file_path}")
-    
-    # Finally, create the main.py file in src
-    with open(os.path.join(PROJECT_ROOT, "src", "main.py"), 'w') as f:
-        f.write(FILE_CONTENT["src/main.py"])
-    print(f"  Created file: {os.path.join(PROJECT_ROOT, 'src', 'main.py')}")
+
+    # Create root files after directories are created
+    for filename, content in FILE_CONTENT.items():
+        with open(os.path.join(PROJECT_ROOT, filename), 'w') as f:
+            f.write(content.strip())
+        print(f"  Created file: {os.path.join(PROJECT_ROOT, filename)}")
 
     print("\nProject setup complete.")
 
@@ -140,8 +129,8 @@ html_content = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SystemPulse</title>
-    <style>
-        /* Basic Reset & Font */
+    <style>  
+      /* Basic Reset & Font */
         body {
             margin: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -173,7 +162,30 @@ html_content = """
         .theme-neo-kyoto select { border: 1px solid #F900F9; background-color: #1A0A3A; color: #F0F0F0; }
         .theme-neo-kyoto .connection-item { border-bottom: 1px solid rgba(0, 245, 212, 0.3); }
 
-        /* --- Layout & Components --- */
+        /* 4. Ocean Sunset (Teal & Pink) */
+        body.theme-ocean-sunset { background: linear-gradient(135deg, #0D4F8C 0%, #2E8B8B 50%, #FF6B9D 100%); color: #FFFFFF; }
+        .theme-ocean-sunset .header { background-color: rgba(13, 79, 140, 0.9); border-bottom: 1px solid #2E8B8B; backdrop-filter: blur(10px); }
+        .theme-ocean-sunset .card { background-color: rgba(255, 255, 255, 0.1); border: 1px solid #2E8B8B; box-shadow: 0 8px 32px rgba(46, 139, 139, 0.3); backdrop-filter: blur(10px); }
+        .theme-ocean-sunset .primary-accent { color: #FF6B9D; }
+        .theme-ocean-sunset select { border: 1px solid #2E8B8B; background-color: rgba(46, 139, 139, 0.3); color: #FFFFFF; }
+        .theme-ocean-sunset .connection-item { border-bottom: 1px solid rgba(46, 139, 139, 0.3); }
+
+        /* 5. Forest Fire (Green & Orange) */
+        body.theme-forest-fire { background: linear-gradient(135deg, #1B4332 0%, #2D5016 50%, #FF8500 100%); color: #F1FAEE; }
+        .theme-forest-fire .header { background-color: rgba(27, 67, 50, 0.9); border-bottom: 1px solid #52B788; backdrop-filter: blur(10px); }
+        .theme-forest-fire .card { background-color: rgba(241, 250, 238, 0.1); border: 1px solid #52B788; box-shadow: 0 8px 32px rgba(82, 183, 136, 0.2); backdrop-filter: blur(10px); }
+        .theme-forest-fire .primary-accent { color: #FF8500; }
+        .theme-forest-fire select { border: 1px solid #52B788; background-color: rgba(82, 183, 136, 0.3); color: #F1FAEE; }
+        .theme-forest-fire .connection-item { border-bottom: 1px solid rgba(82, 183, 136, 0.3); }
+
+        /* 6. Midnight Aurora (Purple & Blue) */
+        body.theme-midnight-aurora { background: linear-gradient(135deg, #1A0B3D 0%, #3C1A78 50%, #00D4FF 100%); color: #E8E3FF; }
+        .theme-midnight-aurora .header { background-color: rgba(26, 11, 61, 0.9); border-bottom: 1px solid #7B2CBF; backdrop-filter: blur(10px); }
+        .theme-midnight-aurora .card { background-color: rgba(232, 227, 255, 0.1); border: 1px solid #7B2CBF; box-shadow: 0 8px 32px rgba(123, 44, 191, 0.3); backdrop-filter: blur(10px); }
+        .theme-midnight-aurora .primary-accent { color: #00D4FF; }
+        .theme-midnight-aurora select { border: 1px solid #7B2CBF; background-color: rgba(123, 44, 191, 0.3); color: #E8E3FF; }
+        .theme-midnight-aurora .connection-item { border-bottom: 1px solid rgba(123, 44, 191, 0.3); } 
+       /* --- Layout & Components --- */
         .header { padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
         .header h1 { margin: 0; font-size: 1.5rem; }
         .header-controls { display: flex; align-items: center; gap: 2rem; }
@@ -190,6 +202,12 @@ html_content = """
         .theme-operator .nav-tab.active { background-color: #39FF14; color: #1E1E1E; }
         .theme-neo-kyoto .nav-tab { background-color: rgba(255,255,255,0.1); color: #F0F0F0; }
         .theme-neo-kyoto .nav-tab.active { background-color: #F900F9; color: #0D0221; }
+        .theme-ocean-sunset .nav-tab { background-color: rgba(46, 139, 139, 0.3); color: #FFFFFF; }
+        .theme-ocean-sunset .nav-tab.active { background-color: #FF6B9D; color: #0D4F8C; }
+        .theme-forest-fire .nav-tab { background-color: rgba(82, 183, 136, 0.3); color: #F1FAEE; }
+        .theme-forest-fire .nav-tab.active { background-color: #FF8500; color: #1B4332; }
+        .theme-midnight-aurora .nav-tab { background-color: rgba(123, 44, 191, 0.3); color: #E8E3FF; }
+        .theme-midnight-aurora .nav-tab.active { background-color: #00D4FF; color: #1A0B3D; }
         
         .dashboard { padding: 2rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
         .dashboard-section { display: none; }
@@ -226,58 +244,99 @@ html_content = """
         .theme-operator .btn-delete { background-color: #FF6B6B; color: #1E1E1E; }
         .theme-neo-kyoto .btn-scan { background-color: #00F5D4; color: #0D0221; }
         .theme-neo-kyoto .btn-delete { background-color: #F900F9; color: #0D0221; }
-        .loading { opacity: 0.6; }
+        .theme-ocean-sunset .btn-scan { background-color: #2E8B8B; color: white; }
+        .theme-ocean-sunset .btn-delete { background-color: #FF6B9D; color: white; }
+        .theme-forest-fire .btn-scan { background-color: #52B788; color: white; }
+        .theme-forest-fire .btn-delete { background-color: #FF8500; color: white; }
+        .theme-midnight-aurora .btn-scan { background-color: #7B2CBF; color: white; }
+        .theme-midnight-aurora .btn-delete { background-color: #00D4FF; color: #1A0B3D; }
+        .loading { opacity: 0.6; } 
+       /* Container Management Specifics */
+        .container-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; margin-bottom: 0.5rem; border-radius: 8px; }
+        .container-info { flex: 1; }
+        .container-name { font-weight: bold; }
+        .container-image { opacity: 0.7; font-size: 0.9rem; }
+        .container-status { padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; margin-right: 0.5rem; }
+        .status-running { background-color: #28a745; color: white; }
+        .status-stopped { background-color: #6c757d; color: white; }
+        .status-paused { background-color: #ffc107; color: black; }
+        .container-actions { display: flex; gap: 0.25rem; }
+        .btn-container { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+        .container-selection { margin-right: 1rem; }
 
-        /* Process Monitor Specifics */
-        .process-list { max-height: 400px; overflow-y: auto; }
-        .process-item { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; font-size: 0.85rem; }
-        .process-info { flex: 1; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 1rem; align-items: center; }
-        .process-name { font-weight: bold; }
-        .process-cpu, .process-memory { text-align: right; }
-        .btn-kill { background-color: #FF3B30; color: white; padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+        /* File Browser Specifics */
+        .file-browser { margin-top: 2rem; }
+        .file-browser-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .current-path { font-family: monospace; padding: 0.5rem; border-radius: 4px; flex: 1; margin-right: 1rem; }
+        .theme-clarity .current-path { background-color: #F8F8F8; border: 1px solid #D1D1D6; }
+        .theme-operator .current-path { background-color: #2D2D2D; border: 1px solid #5A5A5A; color: #E0E0E0; }
+        .theme-neo-kyoto .current-path { background-color: rgba(255,255,255,0.1); border: 1px solid #F900F9; color: #F0F0F0; }
+        .theme-ocean-sunset .current-path { background-color: rgba(46, 139, 139, 0.3); border: 1px solid #2E8B8B; color: #FFFFFF; }
+        .theme-forest-fire .current-path { background-color: rgba(82, 183, 136, 0.3); border: 1px solid #52B788; color: #F1FAEE; }
+        .theme-midnight-aurora .current-path { background-color: rgba(123, 44, 191, 0.3); border: 1px solid #7B2CBF; color: #E8E3FF; }
+        
+        .file-browser-controls { display: flex; gap: 0.5rem; }
+        .btn-small { padding: 0.5rem 1rem; font-size: 0.8rem; }
+        .file-browser-list { max-height: 400px; overflow-y: auto; }
+        .file-browser-item { display: flex; align-items: center; padding: 0.5rem; cursor: pointer; border-radius: 4px; margin-bottom: 2px; }
+        .file-browser-item:hover { opacity: 0.8; }
+        .theme-clarity .file-browser-item:hover { background-color: #F0F0F0; }
+        .theme-operator .file-browser-item:hover { background-color: #3A3A3A; }
+        .theme-neo-kyoto .file-browser-item:hover { background-color: rgba(255,255,255,0.1); }
+        .theme-ocean-sunset .file-browser-item:hover { background-color: rgba(46, 139, 139, 0.2); }
+        .theme-forest-fire .file-browser-item:hover { background-color: rgba(82, 183, 136, 0.2); }
+        .theme-midnight-aurora .file-browser-item:hover { background-color: rgba(123, 44, 191, 0.2); }
+        
+        .file-icon { margin-right: 0.5rem; font-size: 1.2rem; }
+        .file-name { flex: 1; }
+        .file-size-small { font-size: 0.8rem; opacity: 0.7; min-width: 80px; text-align: right; }
+        .file-date { font-size: 0.8rem; opacity: 0.7; min-width: 120px; text-align: right; margin-left: 1rem; }
+        .hidden-file { opacity: 0.6; }
+        .selected-file { font-weight: bold; }
+        .theme-clarity .selected-file { background-color: #0A84FF; color: white; }
+        .theme-operator .selected-file { background-color: #39FF14; color: #1E1E1E; }
+        .theme-neo-kyoto .selected-file { background-color: #F900F9; color: #0D0221; }
+        .theme-ocean-sunset .selected-file { background-color: #FF6B9D; color: white; }
+        .theme-forest-fire .selected-file { background-color: #FF8500; color: white; }
+        .theme-midnight-aurora .selected-file { background-color: #00D4FF; color: #1A0B3D; }
 
-        /* Disk Analyzer Specifics */
-        .disk-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; border-radius: 8px; }
-        .disk-info { flex: 1; }
-        .disk-name { font-weight: bold; }
-        .disk-path { opacity: 0.7; font-size: 0.9rem; }
-        .disk-usage { text-align: right; }
-        .disk-bar { width: 100px; height: 8px; border-radius: 4px; margin: 0.5rem 0; overflow: hidden; }
-        .disk-bar-fill { height: 100%; transition: width 0.3s; }
-        .theme-clarity .disk-item { background-color: #F8F8F8; }
-        .theme-clarity .disk-bar { background-color: #E5E5EA; }
-        .theme-clarity .disk-bar-fill { background-color: #0A84FF; }
-        .theme-operator .disk-item { background-color: #2D2D2D; }
-        .theme-operator .disk-bar { background-color: #3A3A3A; }
-        .theme-operator .disk-bar-fill { background-color: #39FF14; }
-        .theme-neo-kyoto .disk-item { background-color: rgba(255,255,255,0.05); }
-        .theme-neo-kyoto .disk-bar { background-color: rgba(255,255,255,0.1); }
-        .theme-neo-kyoto .disk-bar-fill { background-color: #00F5D4; }
+        /* Media Player Specifics */
+        .media-player { margin-top: 1rem; }
+        .media-controls { display: flex; gap: 0.5rem; margin-bottom: 1rem; align-items: center; }
+        .media-file-input { flex: 1; }
+        .media-display { text-align: center; padding: 2rem; border-radius: 8px; min-height: 300px; display: flex; align-items: center; justify-content: center; }
+        .theme-clarity .media-display { background-color: #F8F8F8; border: 2px dashed #D1D1D6; }
+        .theme-operator .media-display { background-color: #2D2D2D; border: 2px dashed #5A5A5A; }
+        .theme-neo-kyoto .media-display { background-color: rgba(255,255,255,0.05); border: 2px dashed #F900F9; }
+        .theme-ocean-sunset .media-display { background-color: rgba(46, 139, 139, 0.2); border: 2px dashed #2E8B8B; }
+        .theme-forest-fire .media-display { background-color: rgba(82, 183, 136, 0.2); border: 2px dashed #52B788; }
+        .theme-midnight-aurora .media-display { background-color: rgba(123, 44, 191, 0.2); border: 2px dashed #7B2CBF; }
 
-        /* System Info Specifics */
-        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; }
-        .info-item { display: flex; justify-content: space-between; padding: 0.5rem 0; }
-        .info-label { font-weight: bold; opacity: 0.8; }
-        .info-value { text-align: right; }
-
-        /* Network Monitor Specifics */
-        .network-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-        .network-interface { padding: 1rem; border-radius: 8px; }
-        .interface-name { font-weight: bold; margin-bottom: 0.5rem; }
-        .interface-stats { font-size: 0.9rem; opacity: 0.8; }
+        /* Network Tools Specifics */
+        .network-tool { margin-bottom: 2rem; }
+        .network-input { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .network-input input { flex: 1; padding: 0.5rem; border-radius: 4px; }
+        .network-output { max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.9rem; padding: 1rem; border-radius: 4px; }
+        .theme-clarity .network-output { background-color: #F8F8F8; border: 1px solid #D1D1D6; }
+        .theme-operator .network-output { background-color: #2D2D2D; border: 1px solid #5A5A5A; color: #E0E0E0; }
+        .theme-neo-kyoto .network-output { background-color: rgba(255,255,255,0.05); border: 1px solid #F900F9; color: #F0F0F0; }
+        .theme-ocean-sunset .network-output { background-color: rgba(46, 139, 139, 0.3); border: 1px solid #2E8B8B; color: #FFFFFF; }
+        .theme-forest-fire .network-output { background-color: rgba(82, 183, 136, 0.3); border: 1px solid #52B788; color: #F1FAEE; }
+        .theme-midnight-aurora .network-output { background-color: rgba(123, 44, 191, 0.3); border: 1px solid #7B2CBF; color: #E8E3FF; }
     </style>
 </head>
-<body class="theme-clarity">
-
-    <header class="header">
+<body class="theme-clarity"> 
+   <header class="header">
         <h1>System<span class="primary-accent">Pulse</span></h1>
         <div class="header-controls">
             <div class="nav-tabs">
                 <div class="nav-tab active" data-tab="system">System Monitor</div>
                 <div class="nav-tab" data-tab="processes">Processes</div>
                 <div class="nav-tab" data-tab="disk">Disk Analyzer</div>
-                <div class="nav-tab" data-tab="network">Network</div>
-                <div class="nav-tab" data-tab="files">File Cleaner</div>
+                <div class="nav-tab" data-tab="network">Network Tools</div>
+                <div class="nav-tab" data-tab="files">File Manager</div>
+                <div class="nav-tab" data-tab="containers">Containers</div>
+                <div class="nav-tab" data-tab="media">Media Player</div>
                 <div class="nav-tab" data-tab="info">System Info</div>
             </div>
             <div class="theme-selector">
@@ -286,6 +345,9 @@ html_content = """
                     <option value="clarity">Clarity</option>
                     <option value="operator">Operator</option>
                     <option value="neo-kyoto">Neo-Kyoto</option>
+                    <option value="ocean-sunset">Ocean Sunset</option>
+                    <option value="forest-fire">Forest Fire</option>
+                    <option value="midnight-aurora">Midnight Aurora</option>
                 </select>
             </div>
         </div>
@@ -334,11 +396,31 @@ html_content = """
                     <p>Loading disk information...</p>
                 </div>
             </div>
-        </div>
-
-        <!-- Network Monitor Dashboard -->
+        </div> 
+       <!-- Network Tools Dashboard -->
         <div id="network-dashboard" class="dashboard-section">
-            <div class="card" style="grid-column: 1 / -1;">
+            <div class="card">
+                <h2>Ping Tool</h2>
+                <div class="network-tool">
+                    <div class="network-input">
+                        <input type="text" id="ping-host" placeholder="Enter hostname or IP address" value="google.com">
+                        <button id="ping-btn" class="btn btn-scan">Ping</button>
+                        <button id="ping-stop-btn" class="btn btn-delete" disabled>Stop</button>
+                    </div>
+                    <div id="ping-output" class="network-output">Ready to ping...</div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Traceroute</h2>
+                <div class="network-tool">
+                    <div class="network-input">
+                        <input type="text" id="traceroute-host" placeholder="Enter hostname or IP address" value="google.com">
+                        <button id="traceroute-btn" class="btn btn-scan">Traceroute</button>
+                    </div>
+                    <div id="traceroute-output" class="network-output">Ready to trace route...</div>
+                </div>
+            </div>
+            <div class="card network-card">
                 <h2>Network Interfaces</h2>
                 <div class="network-stats" id="network-interfaces">
                     <p>Loading network interfaces...</p>
@@ -350,27 +432,141 @@ html_content = """
                     <p>Loading connections...</p>
                 </div>
             </div>
+            <div class="card">
+                <h2>Packet Capture</h2>
+                <div class="network-tool">
+                    <div class="network-input">
+                        <select id="capture-interface">
+                            <option value="">Select interface...</option>
+                        </select>
+                        <button id="capture-start-btn" class="btn btn-scan">Start Capture</button>
+                        <button id="capture-stop-btn" class="btn btn-delete" disabled>Stop</button>
+                    </div>
+                    <div id="capture-output" class="network-output">Select an interface to start packet capture...</div>
+                </div>
+            </div>
         </div>
 
-        <!-- File Cleaner Dashboard -->
+        <!-- File Manager Dashboard -->
         <div id="files-dashboard" class="dashboard-section">
             <div class="card file-cleaner-card">
+                <h2>System File Browser</h2>
+                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Browse and manage files throughout your entire system. Execute files, view content, and manage permissions.</p>
+                <div class="file-browser">
+                    <div class="file-browser-header">
+                        <input type="text" id="current-path" class="current-path" readonly>
+                        <div class="file-browser-controls">
+                            <button id="root-btn" class="btn btn-small btn-scan">Root</button>
+                            <button id="home-btn" class="btn btn-small btn-scan">Home</button>
+                            <button id="up-btn" class="btn btn-small btn-scan">Up</button>
+                            <button id="refresh-btn" class="btn btn-small btn-scan">Refresh</button>
+                            <button id="execute-btn" class="btn btn-small execute-btn" disabled>Execute</button>
+                            <button id="delete-selected-btn" class="btn btn-small btn-delete" disabled>Delete Selected</button>
+                        </div>
+                    </div>
+                    <div id="file-browser-list" class="file-browser-list">
+                        <p>Loading files...</p>
+                    </div>
+                    <div id="file-preview" class="file-preview" style="display: none;">
+                        <h3>File Preview</h3>
+                        <div id="preview-content"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="card file-cleaner-card">
                 <h2>Large File Scanner</h2>
-                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Find and manage files larger than 100MB in your home directory. Use this tool to free up disk space by removing unnecessary large files.</p>
+                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Find and manage files larger than 100MB. Use this tool to free up disk space.</p>
                 <div class="file-actions">
                     <button id="scan-btn" class="btn btn-scan">Scan for Large Files</button>
                     <button id="delete-btn" class="btn btn-delete" disabled>Delete Selected Files</button>
                 </div>
                 <div id="file-list" class="file-list">
-                    <p>Click "Scan for Large Files" to find files larger than 100MB in your home directory.</p>
+                    <p>Click "Scan for Large Files" to find files larger than 100MB.</p>
                 </div>
-            </div>
-            <div class="card">
-                <h2>Scan Statistics</h2>
-                <div id="scan-stats">
+                <div id="scan-stats" style="margin-top: 1rem;">
                     <p><strong>Files Found:</strong> <span id="files-count">0</span></p>
                     <p><strong>Total Size:</strong> <span id="total-size">0 B</span></p>
                     <p><strong>Largest File:</strong> <span id="largest-file">None</span></p>
+                </div>
+            </div>
+        </div> 
+       <!-- Container Management Dashboard -->
+        <div id="containers-dashboard" class="dashboard-section">
+            <div class="card">
+                <h2>Docker Hub Search</h2>
+                <div class="network-input" style="margin-bottom: 1rem;">
+                    <input type="text" id="docker-search-input" placeholder="Search Docker Hub (e.g., nginx, postgres)">
+                    <button id="docker-search-btn" class="btn btn-scan">Search</button>
+                </div>
+                <div id="docker-search-results" class="file-browser-list" style="max-height: 200px;">
+                    <p>Enter a search term to find Docker images</p>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Run New Container</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <input type="text" id="run-image-input" placeholder="Image name (e.g., nginx:latest)">
+                    <input type="text" id="run-name-input" placeholder="Container name (optional)">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <input type="text" id="run-ports-input" placeholder="Ports (e.g., 8080:80)">
+                    <input type="text" id="run-volumes-input" placeholder="Volumes (e.g., /host:/container)">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <select id="run-platform-select">
+                        <option value="linux/amd64">Linux AMD64</option>
+                        <option value="linux/arm64">Linux ARM64</option>
+                        <option value="darwin/amd64">macOS Intel</option>
+                        <option value="darwin/arm64">macOS Apple Silicon</option>
+                    </select>
+                    <select id="run-runtime-select">
+                        <option value="docker">Docker Runtime</option>
+                        <option value="containerd">Containerd</option>
+                        <option value="virtualization-framework">Apple Virtualization</option>
+                    </select>
+                </div>
+                <button id="run-container-btn" class="btn btn-scan">Run Container</button>
+            </div>
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>Container Management</h2>
+                <div class="file-actions" style="margin-bottom: 2rem;">
+                    <button id="refresh-containers-btn" class="btn btn-scan">Refresh</button>
+                    <button id="start-selected-btn" class="btn btn-scan" disabled>Start Selected</button>
+                    <button id="stop-selected-btn" class="btn btn-delete" disabled>Stop Selected</button>
+                    <button id="pause-selected-btn" class="btn btn-delete" disabled>Pause Selected</button>
+                    <button id="delete-selected-btn" class="btn btn-delete" disabled>Delete Selected</button>
+                    <button id="select-all-btn" class="btn btn-small btn-scan">Select All</button>
+                </div>
+                <div id="containers-list">
+                    <p>Loading containers...</p>
+                </div>
+            </div>
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>Docker Images</h2>
+                <div class="file-actions" style="margin-bottom: 1rem;">
+                    <button id="refresh-images-btn" class="btn btn-scan">Refresh Images</button>
+                    <button id="delete-image-btn" class="btn btn-delete" disabled>Delete Selected Image</button>
+                </div>
+                <div id="images-list" class="file-browser-list" style="max-height: 300px;">
+                    <p>Loading images...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Media Player Dashboard -->
+        <div id="media-dashboard" class="dashboard-section">
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>Media Player</h2>
+                <div class="media-player">
+                    <div class="media-controls">
+                        <input type="file" id="media-file-input" class="media-file-input" accept="audio/*,video/*,image/*,.mkv,.avi,.mov,.wmv,.flv,.webm">
+                        <button id="play-btn" class="btn btn-scan" disabled>Play</button>
+                        <button id="pause-btn" class="btn btn-delete" disabled>Pause</button>
+                        <button id="stop-btn" class="btn btn-delete" disabled>Stop</button>
+                    </div>
+                    <div id="media-display" class="media-display">
+                        <p>Select a media file to play</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -390,9 +586,8 @@ html_content = """
                 </div>
             </div>
         </div>
-    </main>
-
-    <script>
+    </main> 
+   <script>
         // --- Theme Switcher Logic ---
         const themeSelector = document.getElementById('theme-select');
         const body = document.body;
@@ -502,9 +697,8 @@ html_content = """
             });
             
             updateScanStats(files);
-        }
-        
-        function updateScanStats(files) {
+        }    
+    function updateScanStats(files) {
             document.getElementById('files-count').textContent = files.length;
             
             const totalSize = files.reduce((sum, file) => sum + file.size, 0);
@@ -587,9 +781,44 @@ html_content = """
                 alert('Error deleting files. Please try again.');
             } finally {
                 deleteBtn.disabled = false;
-                deleteBtn.textContent = 'Delete Selected';
+                deleteBtn.textContent = 'Delete Selected Files';
             }
         });
+
+        // Update functions based on active tab
+        function updateActiveTab() {
+            const activeTab = document.querySelector('.nav-tab.active').dataset.tab;
+            
+            switch(activeTab) {
+                case 'system':
+                    updateSystemInfo();
+                    updateNetworkInfo();
+                    break;
+                case 'processes':
+                    updateProcessList();
+                    break;
+                case 'disk':
+                    updateDiskInfo();
+                    break;
+                case 'network':
+                    updateNetworkInterfaces();
+                    updateNetworkConnections();
+                    break;
+                case 'files':
+                    loadFileBrowser(currentPath);
+                    break;
+                case 'containers':
+                    updateContainers();
+                    updateDockerImages();
+                    break;
+                case 'media':
+                    initializeMediaPlayer();
+                    break;
+                case 'info':
+                    updateSystemInfoPage();
+                    break;
+            }
+        }
 
         // --- Process Monitor Logic ---
         function updateProcessList() {
@@ -599,46 +828,30 @@ html_content = """
                     const listElement = document.getElementById('process-list');
                     listElement.innerHTML = '';
                     
+                    if (processes.length === 0) {
+                        listElement.innerHTML = '<p>No processes found</p>';
+                        return;
+                    }
+                    
                     processes.forEach(proc => {
                         const item = document.createElement('div');
-                        item.className = 'process-item connection-item';
+                        item.className = 'connection-item';
                         
                         item.innerHTML = `
-                            <div class="process-info">
-                                <span class="process-name">${proc.name}</span>
-                                <span class="process-cpu">${proc.cpu_percent}%</span>
-                                <span class="process-memory">${proc.memory_percent}%</span>
-                                <span>${proc.pid}</span>
-                                <button class="btn btn-kill" onclick="killProcess(${proc.pid})">Kill</button>
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                <span style="flex: 2;">${proc.name}</span>
+                                <span style="flex: 1; text-align: center;">PID: ${proc.pid}</span>
+                                <span style="flex: 1; text-align: center;">CPU: ${proc.cpu_percent}%</span>
+                                <span style="flex: 1; text-align: right;">MEM: ${proc.memory_percent}%</span>
                             </div>
                         `;
                         listElement.appendChild(item);
                     });
                 })
-                .catch(error => console.error('Error fetching processes:', error));
-        }
-        
-        function killProcess(pid) {
-            if (!confirm(`Are you sure you want to kill process ${pid}?`)) return;
-            
-            fetch('/api/processes/kill', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pid: pid })
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    alert('Process killed successfully');
-                    updateProcessList();
-                } else {
-                    alert(`Error: ${result.error}`);
-                }
-            })
-            .catch(error => {
-                console.error('Error killing process:', error);
-                alert('Error killing process');
-            });
+                .catch(error => {
+                    console.error('Error fetching processes:', error);
+                    document.getElementById('process-list').innerHTML = '<p>Error loading processes</p>';
+                });
         }
 
         // --- Disk Analyzer Logic ---
@@ -651,27 +864,34 @@ html_content = """
                     
                     disks.forEach(disk => {
                         const item = document.createElement('div');
-                        item.className = 'disk-item';
+                        item.className = 'connection-item';
                         
-                        const usedPercent = (disk.used / disk.total * 100).toFixed(1);
+                        const usedPercent = disk.percent;
                         
                         item.innerHTML = `
-                            <div class="disk-info">
-                                <div class="disk-name">${disk.device}</div>
-                                <div class="disk-path">${disk.mountpoint}</div>
-                                <div class="disk-bar">
-                                    <div class="disk-bar-fill" style="width: ${usedPercent}%"></div>
+                            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                                <div style="flex: 2;">
+                                    <div style="font-weight: bold;">${disk.device}</div>
+                                    <div style="opacity: 0.7; font-size: 0.9rem;">${disk.mountpoint}</div>
                                 </div>
-                            </div>
-                            <div class="disk-usage">
-                                <div>${formatFileSize(disk.used)} / ${formatFileSize(disk.total)}</div>
-                                <div>${usedPercent}% used</div>
+                                <div style="flex: 2; text-align: center;">
+                                    <div style="width: 100px; height: 8px; background: rgba(0,0,0,0.1); border-radius: 4px; overflow: hidden; margin: 0 auto;">
+                                        <div style="width: ${usedPercent}%; height: 100%; background: #0A84FF; transition: width 0.3s;"></div>
+                                    </div>
+                                </div>
+                                <div style="flex: 1; text-align: right;">
+                                    <div>${formatFileSize(disk.used)} / ${formatFileSize(disk.total)}</div>
+                                    <div>${usedPercent}% used</div>
+                                </div>
                             </div>
                         `;
                         listElement.appendChild(item);
                     });
                 })
-                .catch(error => console.error('Error fetching disk info:', error));
+                .catch(error => {
+                    console.error('Error fetching disk info:', error);
+                    document.getElementById('disk-list').innerHTML = '<p>Error loading disk information</p>';
+                });
         }
 
         // --- Network Monitor Logic ---
@@ -684,11 +904,13 @@ html_content = """
                     
                     Object.entries(interfaces).forEach(([name, stats]) => {
                         const item = document.createElement('div');
-                        item.className = 'network-interface card';
+                        item.className = 'card';
+                        item.style.padding = '1rem';
+                        item.style.marginBottom = '0.5rem';
                         
                         item.innerHTML = `
-                            <div class="interface-name">${name}</div>
-                            <div class="interface-stats">
+                            <div style="font-weight: bold; margin-bottom: 0.5rem;">${name}</div>
+                            <div style="font-size: 0.9rem; opacity: 0.8;">
                                 <div>Sent: ${formatFileSize(stats.bytes_sent)}</div>
                                 <div>Received: ${formatFileSize(stats.bytes_recv)}</div>
                                 <div>Packets Sent: ${stats.packets_sent}</div>
@@ -730,69 +952,230 @@ html_content = """
                 .catch(error => console.error('Error fetching network connections:', error));
         }
 
-        // --- System Info Logic ---
-        function updateSystemInfo() {
-            fetch('/api/system')
+        // --- Container Management Logic ---
+        function updateContainers() {
+            fetch('/api/containers')
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('cpu-usage').textContent = `${data.cpu_percent}%`;
-                    document.getElementById('mem-usage').textContent = `${data.memory_percent}%`;
-                    document.getElementById('disk-usage').textContent = `${data.disk_percent}%`;
+                    const listElement = document.getElementById('containers-list');
+                    
+                    if (!data.docker_installed) {
+                        listElement.innerHTML = `<p>${data.message || 'Docker is not installed'}</p>`;
+                        return;
+                    }
+                    
+                    if (data.error) {
+                        listElement.innerHTML = `<p>Error: ${data.error}</p>`;
+                        return;
+                    }
+                    
+                    if (data.containers.length === 0) {
+                        listElement.innerHTML = '<p>No containers found</p>';
+                        return;
+                    }
+                    
+                    listElement.innerHTML = '';
+                    data.containers.forEach(container => {
+                        const item = document.createElement('div');
+                        item.className = 'connection-item';
+                        
+                        const statusClass = container.state === 'running' ? 'status-running' : 
+                                          container.state === 'paused' ? 'status-paused' : 'status-stopped';
+                        
+                        item.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                                <input type="checkbox" class="container-selection" data-id="${container.id}" style="margin-right: 1rem;">
+                                <div style="flex: 2;">
+                                    <div style="font-weight: bold;">${container.name}</div>
+                                    <div style="opacity: 0.7; font-size: 0.9rem;">${container.image}</div>
+                                </div>
+                                <div style="flex: 1; text-align: center;">
+                                    <span class="container-status ${statusClass}" style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">${container.state}</span>
+                                </div>
+                                <div style="flex: 1; text-align: right; opacity: 0.7; font-size: 0.9rem;">
+                                    ${container.status}
+                                </div>
+                            </div>
+                        `;
+                        
+                        listElement.appendChild(item);
+                    });
                 })
-                .catch(error => console.error('Error fetching system info:', error));
+                .catch(error => {
+                    console.error('Error fetching containers:', error);
+                    document.getElementById('containers-list').innerHTML = '<p>Error loading containers</p>';
+                });
         }
-
+        
+        function updateDockerImages() {
+            fetch('/api/docker/images')
+                .then(response => response.json())
+                .then(data => {
+                    const listElement = document.getElementById('images-list');
+                    
+                    if (data.error) {
+                        listElement.innerHTML = `<p>Error: ${data.error}</p>`;
+                        return;
+                    }
+                    
+                    if (data.images.length === 0) {
+                        listElement.innerHTML = '<p>No Docker images found</p>';
+                        return;
+                    }
+                    
+                    listElement.innerHTML = '';
+                    data.images.forEach(image => {
+                        const item = document.createElement('div');
+                        item.className = 'file-browser-item';
+                        
+                        item.innerHTML = `
+                            <input type="radio" name="selected-image" class="image-selection" data-id="${image.id}" style="margin-right: 0.5rem;">
+                            <span class="file-icon">📦</span>
+                            <div class="file-info">
+                                <span class="file-name">${image.repository}:${image.tag}</span>
+                                <span class="file-size-small">${image.size}</span>
+                            </div>
+                            <span class="file-date">${image.created}</span>
+                        `;
+                        
+                        listElement.appendChild(item);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching images:', error);
+                    document.getElementById('images-list').innerHTML = '<p>Error loading images</p>';
+                });
+        }
+        
+        function initializeMediaPlayer() {
+            console.log('Media player initialized');
+        }
+        
         function updateSystemInfoPage() {
             fetch('/api/system/info')
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
                 .then(info => {
                     const systemElement = document.getElementById('system-info');
                     const hardwareElement = document.getElementById('hardware-info');
                     
-                    systemElement.innerHTML = `
-                        <div class="info-item"><span class="info-label">Operating System:</span><span class="info-value">${info.system.os}</span></div>
-                        <div class="info-item"><span class="info-label">Version:</span><span class="info-value">${info.system.version}</span></div>
-                        <div class="info-item"><span class="info-label">Architecture:</span><span class="info-value">${info.system.architecture}</span></div>
-                        <div class="info-item"><span class="info-label">Hostname:</span><span class="info-value">${info.system.hostname}</span></div>
-                        <div class="info-item"><span class="info-label">Uptime:</span><span class="info-value">${info.system.uptime}</span></div>
-                        <div class="info-item"><span class="info-label">Boot Time:</span><span class="info-value">${info.system.boot_time}</span></div>
-                    `;
+                    if (systemElement) {
+                        systemElement.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;"><span style="font-weight: bold; opacity: 0.8;">Operating System:</span><span style="text-align: right;">${info.system.os}</span></div>
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;"><span style="font-weight: bold; opacity: 0.8;">Architecture:</span><span style="text-align: right;">${info.system.architecture}</span></div>
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;"><span style="font-weight: bold; opacity: 0.8;">Hostname:</span><span style="text-align: right;">${info.system.hostname}</span></div>
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;"><span style="font-weight: bold; opacity: 0.8;">Uptime:</span><span style="text-align: right;">${info.system.uptime}</span></div>
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;"><span style="font-weight: bold; opacity: 0.8;">Boot Time:</span><span style="text-align: right;">${info.system.boot_time}</span></div>
+                        `;
+                    }
                     
-                    hardwareElement.innerHTML = `
-                        <div class="info-item"><span class="info-label">CPU:</span><span class="info-value">${info.hardware.cpu}</span></div>
-                        <div class="info-item"><span class="info-label">CPU Cores:</span><span class="info-value">${info.hardware.cpu_cores}</span></div>
-                        <div class="info-item"><span class="info-label">CPU Frequency:</span><span class="info-value">${info.hardware.cpu_freq} MHz</span></div>
-                        <div class="info-item"><span class="info-label">Total Memory:</span><span class="info-value">${formatFileSize(info.hardware.total_memory)}</span></div>
-                        <div class="info-item"><span class="info-label">Available Memory:</span><span class="info-value">${formatFileSize(info.hardware.available_memory)}</span></div>
-                    `;
+                    if (hardwareElement) {
+                        hardwareElement.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;"><span style="font-weight: bold; opacity: 0.8;">CPU:</span><span style="text-align: right;">${info.hardware.cpu}</span></div>
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;"><span style="font-weight: bold; opacity: 0.8;">CPU Cores:</span><span style="text-align: right;">${info.hardware.cpu_cores}</span></div>
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;"><span style="font-weight: bold; opacity: 0.8;">CPU Threads:</span><span style="text-align: right;">${info.hardware.cpu_threads}</span></div>
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;"><span style="font-weight: bold; opacity: 0.8;">CPU Frequency:</span><span style="text-align: right;">${info.hardware.cpu_freq}</span></div>
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;"><span style="font-weight: bold; opacity: 0.8;">Total Memory:</span><span style="text-align: right;">${formatFileSize(info.hardware.total_memory)}</span></div>
+                            <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;"><span style="font-weight: bold; opacity: 0.8;">Available Memory:</span><span style="text-align: right;">${formatFileSize(info.hardware.available_memory)}</span></div>
+                        `;
+                    }
                 })
-                .catch(error => console.error('Error fetching system info:', error));
+                .catch(error => {
+                    console.error('Error fetching system info:', error);
+                    const systemElement = document.getElementById('system-info');
+                    const hardwareElement = document.getElementById('hardware-info');
+                    if (systemElement) systemElement.innerHTML = '<p>Error loading system information</p>';
+                    if (hardwareElement) hardwareElement.innerHTML = '<p>Error loading hardware information</p>';
+                });
         }
 
-        // Update functions based on active tab
-        function updateActiveTab() {
-            const activeTab = document.querySelector('.nav-tab.active').dataset.tab;
+        // --- File Browser Logic ---
+        let currentPath = '/';
+        let selectedFile = null;
+
+        function loadFileBrowser(path = '/') {
+            currentPath = path;
+            document.getElementById('current-path').value = path;
             
-            switch(activeTab) {
-                case 'system':
-                    updateSystemInfo();
-                    updateNetworkInfo();
-                    break;
-                case 'processes':
-                    updateProcessList();
-                    break;
-                case 'disk':
-                    updateDiskInfo();
-                    break;
-                case 'network':
-                    updateNetworkInterfaces();
-                    updateNetworkConnections();
-                    break;
-                case 'info':
-                    updateSystemInfoPage();
-                    break;
-            }
+            fetch(`/api/files/browse?path=${encodeURIComponent(path)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const listElement = document.getElementById('file-browser-list');
+                    listElement.innerHTML = '';
+                    
+                    // Add parent directory if not at root
+                    if (data.parent_path) {
+                        const parentItem = document.createElement('div');
+                        parentItem.className = 'file-browser-item';
+                        parentItem.innerHTML = `
+                            <span class="file-icon">📁</span>
+                            <span class="file-name">..</span>
+                            <span class="file-size-small">-</span>
+                            <span class="file-date">-</span>
+                        `;
+                        parentItem.onclick = () => loadFileBrowser(data.parent_path);
+                        listElement.appendChild(parentItem);
+                    }
+                    
+                    data.items.forEach(item => {
+                        const fileItem = document.createElement('div');
+                        fileItem.className = `file-browser-item ${item.hidden ? 'hidden-file' : ''}`;
+                        
+                        const icon = item.is_directory ? '📁' : '📄';
+                        const size = item.is_directory ? '-' : formatFileSize(item.size);
+                        const date = new Date(item.modified).toLocaleDateString();
+                        
+                        fileItem.innerHTML = `
+                            <span class="file-icon">${icon}</span>
+                            <span class="file-name">${item.name}</span>
+                            <span class="file-size-small">${size}</span>
+                            <span class="file-date">${date}</span>
+                        `;
+                        
+                        fileItem.onclick = () => {
+                            // Remove previous selection
+                            document.querySelectorAll('.file-browser-item').forEach(el => el.classList.remove('selected-file'));
+                            fileItem.classList.add('selected-file');
+                            selectedFile = item;
+                            
+                            // Enable/disable buttons
+                            document.getElementById('execute-btn').disabled = !item.is_directory && !item.name.includes('.');
+                            document.getElementById('delete-selected-btn').disabled = false;
+                            
+                            if (item.is_directory) {
+                                // Double-click to enter directory
+                                setTimeout(() => {
+                                    if (fileItem.classList.contains('selected-file')) {
+                                        loadFileBrowser(item.path);
+                                    }
+                                }, 300);
+                            }
+                        };
+                        
+                        listElement.appendChild(fileItem);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading file browser:', error);
+                    document.getElementById('file-browser-list').innerHTML = '<p>Error loading files</p>';
+                });
         }
+
+        // File browser event listeners
+        document.getElementById('root-btn').onclick = () => loadFileBrowser('/');
+        document.getElementById('home-btn').onclick = () => loadFileBrowser('/Users');
+        document.getElementById('up-btn').onclick = () => {
+            const parentPath = currentPath.split('/').slice(0, -1).join('/') || '/';
+            loadFileBrowser(parentPath);
+        };
+        document.getElementById('refresh-btn').onclick = () => loadFileBrowser(currentPath);
+
+        // Initialize file browser with home directory
+        loadFileBrowser('/Users');
 
         // Initial call and set intervals
         updateActiveTab();
@@ -802,6 +1185,46 @@ html_content = """
 </body>
 </html>
 """
+
+# --- API Models ---
+class DeleteFilesRequest(BaseModel):
+    files: List[str]
+
+class KillProcessRequest(BaseModel):
+    pid: int
+
+class BrowseDirectoryRequest(BaseModel):
+    path: str
+
+class DeleteBrowserFilesRequest(BaseModel):
+    files: List[str]
+
+class NetworkToolRequest(BaseModel):
+    host: str
+
+class ExecuteFileRequest(BaseModel):
+    file_path: str
+
+class ContainerActionRequest(BaseModel):
+    container_ids: List[str]
+    action: str
+
+class DockerSearchRequest(BaseModel):
+    query: str
+    limit: int = 25
+
+class DockerPullRequest(BaseModel):
+    image: str
+    tag: str = "latest"
+
+class DockerRunRequest(BaseModel):
+    image: str
+    name: str = ""
+    ports: List[str] = []
+    volumes: List[str] = []
+    environment: List[str] = []
+    platform: str = "linux/amd64"  # linux/amd64, linux/arm64, darwin/amd64, darwin/arm64
+    runtime: str = "docker"  # docker, containerd, virtualization-framework
 
 # --- API Endpoints ---
 
@@ -852,18 +1275,9 @@ async def get_network_info():
     # Return a limited number of connections to not overwhelm the UI
     return connections[:20]
 
-
-# --- API Models ---
-class DeleteFilesRequest(BaseModel):
-    files: List[str]
-
-class KillProcessRequest(BaseModel):
-    pid: int
-
-
 @app.get("/api/files/scan", response_model=List[Dict[str, Any]])
 async def scan_large_files():
-    """Scans the user's home directory for files larger than 1GB."""
+    """Scans the user's home directory for files larger than 100MB."""
     large_files = []
     home_dir = Path.home()
     min_size = 100 * 1024 * 1024  # 100MB in bytes
@@ -926,7 +1340,6 @@ async def scan_large_files():
     large_files.sort(key=lambda x: x["size"], reverse=True)
     return large_files[:50]  # Limit to 50 files to avoid overwhelming the UI
 
-
 @app.post("/api/files/delete")
 async def delete_files(request: DeleteFilesRequest):
     """Deletes the specified files after user confirmation."""
@@ -937,11 +1350,6 @@ async def delete_files(request: DeleteFilesRequest):
         try:
             path = Path(file_path)
             if path.exists() and path.is_file():
-                # Additional safety check - only allow deletion of files in user's home directory
-                if not str(path).startswith(str(Path.home())):
-                    errors.append(f"Cannot delete file outside home directory: {file_path}")
-                    continue
-                    
                 path.unlink()
                 deleted_count += 1
             else:
@@ -982,21 +1390,6 @@ async def get_processes():
     # Sort by CPU usage (highest first) and limit to top 50
     processes.sort(key=lambda x: x['cpu_percent'], reverse=True)
     return processes[:50]
-
-
-@app.post("/api/processes/kill")
-async def kill_process(request: KillProcessRequest):
-    """Kill a process by PID."""
-    try:
-        proc = psutil.Process(request.pid)
-        proc.terminate()
-        return {"success": True, "message": f"Process {request.pid} terminated"}
-    except psutil.NoSuchProcess:
-        raise HTTPException(status_code=404, detail="Process not found")
-    except psutil.AccessDenied:
-        raise HTTPException(status_code=403, detail="Access denied - try running with sudo")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error killing process: {str(e)}")
 
 
 @app.get("/api/disk", response_model=List[Dict[str, Any]])
@@ -1044,20 +1437,99 @@ async def get_network_interfaces():
         raise HTTPException(status_code=500, detail=f"Error fetching network interfaces: {str(e)}")
 
 
+@app.get("/api/files/browse")
+async def browse_files(path: str = "/"):
+    """Browse files and directories at the specified path."""
+    try:
+        import os
+        import stat
+        from datetime import datetime
+        
+        if not os.path.exists(path):
+            raise HTTPException(status_code=404, detail="Path not found")
+        
+        if not os.path.isdir(path):
+            raise HTTPException(status_code=400, detail="Path is not a directory")
+        
+        items = []
+        try:
+            for item in os.listdir(path):
+                item_path = os.path.join(path, item)
+                try:
+                    stat_info = os.stat(item_path)
+                    is_dir = os.path.isdir(item_path)
+                    
+                    items.append({
+                        'name': item,
+                        'path': item_path,
+                        'is_directory': is_dir,
+                        'size': stat_info.st_size if not is_dir else 0,
+                        'modified': datetime.fromtimestamp(stat_info.st_mtime).isoformat(),
+                        'permissions': oct(stat_info.st_mode)[-3:],
+                        'hidden': item.startswith('.')
+                    })
+                except (OSError, PermissionError):
+                    continue
+        except PermissionError:
+            raise HTTPException(status_code=403, detail="Permission denied")
+        
+        # Sort directories first, then files
+        items.sort(key=lambda x: (not x['is_directory'], x['name'].lower()))
+        
+        return {
+            'current_path': path,
+            'parent_path': os.path.dirname(path) if path != '/' else None,
+            'items': items
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error browsing files: {str(e)}")
+
+
 @app.get("/api/system/info", response_model=Dict[str, Any])
 async def get_system_info_detailed():
     """Get detailed system and hardware information."""
     try:
         # System info
-        boot_time = datetime.fromtimestamp(psutil.boot_time())
-        uptime = datetime.now() - boot_time
+        try:
+            boot_time = datetime.fromtimestamp(psutil.boot_time())
+            uptime = datetime.now() - boot_time
+            uptime_str = str(uptime).split('.')[0]  # Remove microseconds
+            boot_time_str = boot_time.strftime('%Y-%m-%d %H:%M:%S')
+        except Exception:
+            uptime_str = "Unknown"
+            boot_time_str = "Unknown"
         
         # CPU info
-        cpu_freq = psutil.cpu_freq()
-        cpu_freq_current = cpu_freq.current if cpu_freq else 0
+        try:
+            cpu_freq = psutil.cpu_freq()
+            cpu_freq_current = round(cpu_freq.current, 2) if cpu_freq and cpu_freq.current else "Unknown"
+        except Exception:
+            cpu_freq_current = "Unknown"
         
         # Memory info
-        memory = psutil.virtual_memory()
+        try:
+            memory = psutil.virtual_memory()
+            total_memory = memory.total
+            available_memory = memory.available
+        except Exception:
+            total_memory = 0
+            available_memory = 0
+        
+        # CPU info
+        try:
+            cpu_cores = psutil.cpu_count(logical=False) or "Unknown"
+            cpu_threads = psutil.cpu_count(logical=True) or "Unknown"
+        except Exception:
+            cpu_cores = "Unknown"
+            cpu_threads = "Unknown"
+        
+        # Processor info
+        try:
+            processor = platform.processor()
+            if not processor:
+                processor = f"{platform.machine()} CPU"
+        except Exception:
+            processor = "Unknown CPU"
         
         return {
             'system': {
@@ -1065,21 +1537,130 @@ async def get_system_info_detailed():
                 'version': platform.version(),
                 'architecture': platform.machine(),
                 'hostname': socket.gethostname(),
-                'uptime': str(uptime).split('.')[0],  # Remove microseconds
-                'boot_time': boot_time.strftime('%Y-%m-%d %H:%M:%S')
+                'uptime': uptime_str,
+                'boot_time': boot_time_str
             },
             'hardware': {
-                'cpu': platform.processor() or f"{platform.machine()} CPU",
-                'cpu_cores': psutil.cpu_count(logical=False),
-                'cpu_threads': psutil.cpu_count(logical=True),
-                'cpu_freq': round(cpu_freq_current, 2) if cpu_freq_current else 'Unknown',
-                'total_memory': memory.total,
-                'available_memory': memory.available
+                'cpu': processor,
+                'cpu_cores': cpu_cores,
+                'cpu_threads': cpu_threads,
+                'cpu_freq': f"{cpu_freq_current} MHz" if cpu_freq_current != "Unknown" else "Unknown",
+                'total_memory': total_memory,
+                'available_memory': available_memory
             }
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching system info: {str(e)}")
+        # Return a basic response if everything fails
+        return {
+            'system': {
+                'os': f"{platform.system()} {platform.release()}",
+                'version': "Unknown",
+                'architecture': platform.machine(),
+                'hostname': socket.gethostname(),
+                'uptime': "Unknown",
+                'boot_time': "Unknown"
+            },
+            'hardware': {
+                'cpu': "Unknown CPU",
+                'cpu_cores': "Unknown",
+                'cpu_threads': "Unknown", 
+                'cpu_freq': "Unknown",
+                'total_memory': 0,
+                'available_memory': 0
+            }
+        }
 
+
+@app.get("/api/containers")
+async def get_containers():
+    """Get list of Docker containers."""
+    try:
+        # Check if Docker is installed and daemon is running
+        result = subprocess.run(['docker', 'version'], capture_output=True, text=True, timeout=5)
+        if result.returncode != 0:
+            if 'Cannot connect to the Docker daemon' in result.stderr:
+                return {'containers': [], 'docker_installed': True, 'error': 'Docker daemon not running. Start Docker Desktop.'}
+            return {'containers': [], 'docker_installed': False, 'message': 'Docker not installed'}
+        
+        # Try different format approaches for better compatibility
+        result = subprocess.run(
+            ['docker', 'ps', '-a', '--format', 'table {{.ID}}\\t{{.Names}}\\t{{.Image}}\\t{{.Status}}\\t{{.Ports}}'],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode != 0:
+            return {'containers': [], 'docker_installed': True, 'error': result.stderr}
+        
+        containers = []
+        lines = result.stdout.strip().split('\n')
+        
+        if len(lines) > 1:  # Skip header
+            for line in lines[1:]:
+                if line and not line.startswith('CONTAINER'):
+                    parts = line.split('\t')
+                    if len(parts) >= 4:
+                        # Determine state from status
+                        status = parts[3]
+                        state = 'running' if 'Up' in status else 'stopped'
+                        if 'Paused' in status:
+                            state = 'paused'
+                        
+                        containers.append({
+                            'id': parts[0][:12],
+                            'name': parts[1],
+                            'image': parts[2],
+                            'status': parts[3],
+                            'state': state,
+                            'ports': parts[4] if len(parts) > 4 else ''
+                        })
+        
+        return {'containers': containers, 'docker_installed': True}
+        
+    except subprocess.TimeoutExpired:
+        return {'containers': [], 'docker_installed': True, 'error': 'Docker command timed out. Check Docker Desktop.'}
+    except FileNotFoundError:
+        return {'containers': [], 'docker_installed': False, 'message': 'Docker not found. Install Docker Desktop.'}
+    except Exception as e:
+        return {'containers': [], 'docker_installed': True, 'error': f'Docker error: {str(e)}'}
+
+
+@app.get("/api/docker/images")
+async def get_docker_images():
+    """Get list of local Docker images."""
+    try:
+        result = subprocess.run(
+            ['docker', 'images', '--format', 'table {{.Repository}}\\t{{.Tag}}\\t{{.ID}}\\t{{.CreatedAt}}\\t{{.Size}}'],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode != 0:
+            return {'images': [], 'error': result.stderr}
+        
+        images = []
+        lines = result.stdout.strip().split('\n')
+        
+        if len(lines) > 1:  # Skip header
+            for line in lines[1:]:
+                parts = line.split('\t')
+                if len(parts) >= 5:
+                    images.append({
+                        'repository': parts[0],
+                        'tag': parts[1],
+                        'id': parts[2][:12],
+                        'created': parts[3],
+                        'size': parts[4]
+                    })
+        
+        return {'images': images}
+        
+    except subprocess.TimeoutExpired:
+        return {'images': [], 'error': 'Command timed out'}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting images: {str(e)}")
 
 # ==============================================================================
 # PART 3: MAIN EXECUTION
@@ -1092,6 +1673,6 @@ if __name__ == "__main__":
 
     # Step 2: Start the web server.
     print("\nStarting SystemPulse server...")
-    print("Access the dashboard at http://127.0.0.1:8080")
+    print("Access the dashboard at http://127.0.0.1:3001")
     print("Press CTRL+C to stop the server.")
-    uvicorn.run(app, host="127.0.0.1", port=8080)
+    uvicorn.run(app, host="127.0.0.1", port=3001)
