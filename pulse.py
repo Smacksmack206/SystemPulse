@@ -9,6 +9,7 @@ import time
 import platform
 import socket
 import subprocess
+import argparse
 from pathlib import Path
 from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException
@@ -2887,16 +2888,230 @@ async def execute_terminal_command(request: TerminalRequest):
         return {"error": f"Error executing command: {str(e)}"}
 
 # ==============================================================================
-# PART 3: MAIN EXECUTION
+# PART 3: PORT MANAGEMENT
+# Smart port detection and management functions
+# ==============================================================================
+
+def is_port_in_use(port):
+    """Check if a port is currently in use."""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('127.0.0.1', port))
+            return False
+        except OSError:
+            return True
+
+def get_process_on_port(port):
+    """Get the process ID and name using a specific port."""
+    try:
+        result = subprocess.run(['lsof', '-ti', f':{port}'], capture_output=True, text=True)
+        if result.returncode == 0 and result.stdout.strip():
+            pid = result.stdout.strip().split('\n')[0]
+            
+            # Get process name
+            proc_result = subprocess.run(['ps', '-p', pid, '-o', 'comm='], capture_output=True, text=True)
+            process_name = proc_result.stdout.strip() if proc_result.returncode == 0 else 'unknown'
+            
+            return int(pid), process_name
+        return None, None
+    except Exception as e:
+        print(f"Error checking process on port {port}: {e}")
+        return None, None
+
+def kill_process_on_port(port):
+    """Kill the process using a specific port."""
+    pid, process_name = get_process_on_port(port)
+    if pid:
+        try:
+            subprocess.run(['kill', '-9', str(pid)], check=True)
+            print(f"✅ Killed process {process_name} (PID: {pid}) on port {port}")
+            return True
+        except subprocess.CalledProcessError:
+            print(f"❌ Failed to kill process {process_name} (PID: {pid}) on port {port}")
+            return False
+    return False
+
+def find_available_port(start_port=3000, max_attempts=100):
+    """Find an available port starting from start_port."""
+    for port in range(start_port, start_port + max_attempts):
+        if not is_port_in_use(port):
+            return port
+    return None
+
+def handle_port_conflict(preferred_port):
+    """Handle port conflicts with user interaction."""
+    if not is_port_in_use(preferred_port):
+        return preferred_port
+    
+    pid, process_name = get_process_on_port(preferred_port)
+    
+    print(f"\n⚠️  Port {preferred_port} is already in use!")
+    if pid and process_name:
+        print(f"   Process: {process_name} (PID: {pid})")
+    
+    print("\nOptions:")
+    print("1. Find another available port automatically")
+    print("2. Kill the process and use this port")
+    print("3. Exit")
+    
+    while True:
+        try:
+            choice = input("\nEnter your choice (1/2/3): ").strip()
+            
+            if choice == '1':
+                # Find alternative port
+                alt_port = find_available_port(preferred_port + 1)
+                if alt_port:
+                    print(f"✅ Found available port: {alt_port}")
+                    return alt_port
+                else:
+                    print("❌ No available ports found in range")
+                    continue
+                    
+            elif choice == '2':
+                # Kill process on port
+                if pid:
+                    confirm = input(f"Are you sure you want to kill {process_name} (PID: {pid})? (y/N): ").strip().lower()
+                    if confirm in ['y', 'yes']:
+                        if kill_process_on_port(preferred_port):
+                            # Wait a moment for port to be released
+                            time.sleep(1)
+                            if not is_port_in_use(preferred_port):
+                                print(f"✅ Port {preferred_port} is now available")
+                                return preferred_port
+                            else:
+                                print(f"❌ Port {preferred_port} is still in use")
+                                continue
+                        else:
+                            print("❌ Failed to kill process")
+                            continue
+                    else:
+                        print("Operation cancelled")
+                        continue
+                else:
+                    print("❌ No process found to kill")
+                    continue
+                    
+            elif choice == '3':
+                print("Exiting...")
+                exit(0)
+                
+            else:
+                print("Invalid choice. Please enter 1, 2, or 3.")
+                continue
+                
+        except KeyboardInterrupt:
+            print("\n\nExiting...")
+            exit(0)
+        except Exception as e:
+            print(f"Error: {e}")
+            continue
+
+def scan_and_display_ports(start_port=3000, end_port=3010):
+    """Scan and display port usage in a range."""
+    print(f"\n🔍 Scanning ports {start_port}-{end_port}:")
+    print("-" * 50)
+    
+    for port in range(start_port, end_port + 1):
+        if is_port_in_use(port):
+            pid, process_name = get_process_on_port(port)
+            status = f"❌ USED - {process_name} (PID: {pid})" if pid else "❌ USED"
+        else:
+            status = "✅ FREE"
+        
+        print(f"Port {port:4d}: {status}")
+    
+    print("-" * 50)
+
+# ==============================================================================
+# PART 4: MAIN EXECUTION
 # This runs the setup and then starts the server.
 # ==============================================================================
 
 if __name__ == "__main__":
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='SystemPulse - System Monitoring Dashboard')
+    parser.add_argument('-p', '--port', type=int, default=3004, help='Preferred port (default: 3004)')
+    parser.add_argument('--auto-port', action='store_true', help='Automatically find available port')
+    parser.add_argument('--kill-port', action='store_true', help='Kill process on port if occupied')
+    parser.add_argument('--scan-ports', type=str, help='Scan port range (e.g., 3000-3010)')
+    parser.add_argument('--host', default='127.0.0.1', help='Host to bind to (default: 127.0.0.1)')
+    
+    args = parser.parse_args()
+    
+    # Handle port scanning request
+    if args.scan_ports:
+        try:
+            start, end = map(int, args.scan_ports.split('-'))
+            scan_and_display_ports(start, end)
+            exit(0)
+        except ValueError:
+            print("❌ Invalid port range format. Use: --scan-ports 3000-3010")
+            exit(1)
+    
     # Step 1: Create the project structure if it doesn't exist.
     setup_project_if_needed()
 
-    # Step 2: Start the web server.
-    print("\nStarting SystemPulse server...")
-    print("Access the dashboard at http://127.0.0.1:3004")
-    print("Press CTRL+C to stop the server.")
-    uvicorn.run(app, host="127.0.0.1", port=3004)
+    # Step 2: Smart port management
+    preferred_port = args.port
+    
+    print("\n🚀 SystemPulse Server Startup")
+    print("=" * 40)
+    
+    # Check if preferred port is available
+    if is_port_in_use(preferred_port):
+        print(f"⚠️  Preferred port {preferred_port} is in use")
+        
+        if args.auto_port:
+            # Automatically find available port
+            selected_port = find_available_port(preferred_port + 1)
+            if selected_port:
+                print(f"✅ Auto-selected available port: {selected_port}")
+            else:
+                print("❌ No available ports found")
+                exit(1)
+        elif args.kill_port:
+            # Automatically kill process on port
+            pid, process_name = get_process_on_port(preferred_port)
+            if pid:
+                print(f"🔪 Killing process {process_name} (PID: {pid}) on port {preferred_port}")
+                if kill_process_on_port(preferred_port):
+                    time.sleep(1)
+                    if not is_port_in_use(preferred_port):
+                        selected_port = preferred_port
+                        print(f"✅ Port {preferred_port} is now available")
+                    else:
+                        print(f"❌ Port {preferred_port} is still in use")
+                        exit(1)
+                else:
+                    print("❌ Failed to kill process")
+                    exit(1)
+            else:
+                print("❌ No process found to kill")
+                exit(1)
+        else:
+            # Show port scan and interactive handling
+            scan_and_display_ports(max(3000, preferred_port - 5), preferred_port + 10)
+            selected_port = handle_port_conflict(preferred_port)
+    else:
+        selected_port = preferred_port
+        print(f"✅ Port {selected_port} is available")
+
+    # Step 3: Start the web server
+    print(f"\n🌐 Starting SystemPulse server on {args.host}:{selected_port}...")
+    print(f"📱 Access the dashboard at http://{args.host}:{selected_port}")
+    print("⏹️  Press CTRL+C to stop the server.")
+    print("=" * 40)
+    
+    try:
+        uvicorn.run(app, host=args.host, port=selected_port)
+    except KeyboardInterrupt:
+        print("\n\n👋 SystemPulse server stopped gracefully")
+    except Exception as e:
+        print(f"\n❌ Server error: {e}")
+        
+        # If server fails to start, offer to scan ports again
+        print("\n🔍 Would you like to scan for available ports?")
+        if input("Scan ports? (y/N): ").strip().lower() in ['y', 'yes']:
+            scan_and_display_ports(3000, 3020)
