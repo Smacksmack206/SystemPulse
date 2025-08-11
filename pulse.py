@@ -10,6 +10,7 @@ import platform
 import socket
 import subprocess
 import argparse
+import json
 from pathlib import Path
 from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException
@@ -449,6 +450,7 @@ html_content = """
                 <div class="nav-tab" data-tab="media">Media Player</div>
                 <div class="nav-tab" data-tab="services">Services</div>
                 <div class="nav-tab" data-tab="terminal">Terminal</div>
+                <div class="nav-tab" data-tab="torrents">Torrents</div>
                 <div class="nav-tab" data-tab="info">System Info</div>
             </div>
             <div class="theme-selector">
@@ -776,6 +778,79 @@ html_content = """
 
 
 
+        <!-- Torrents Dashboard -->
+        <div id="torrents-dashboard" class="dashboard-section">
+            <div class="card">
+                <h2>Tor Network</h2>
+                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Connect to Tor network for anonymous browsing and downloads.</p>
+                <div class="service-controls">
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                        <button id="tor-start-btn" class="btn btn-scan">Start Tor</button>
+                        <button id="tor-stop-btn" class="btn btn-delete">Stop Tor</button>
+                        <button id="tor-status-btn" class="btn btn-scan">Check Status</button>
+                        <button id="tor-newid-btn" class="btn btn-scan">New Identity</button>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label>SOCKS Port: </label>
+                        <input type="number" id="tor-socks-port" value="9050" min="1024" max="65535" style="width: 100px; padding: 0.25rem;">
+                        <label style="margin-left: 1rem;">Control Port: </label>
+                        <input type="number" id="tor-control-port" value="9051" min="1024" max="65535" style="width: 100px; padding: 0.25rem;">
+                    </div>
+                    <div id="tor-output" class="network-output" style="max-height: 200px;">
+                        <p>Tor not running. Click "Start Tor" to begin.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Torrent Downloads</h2>
+                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Download torrents through Tor network for privacy.</p>
+                <div class="torrent-controls">
+                    <div style="margin-bottom: 1rem;">
+                        <input type="text" id="torrent-url" placeholder="Magnet link or .torrent URL" style="flex: 1; padding: 0.5rem; width: 70%; margin-right: 0.5rem;">
+                        <button id="add-torrent-btn" class="btn btn-scan">Add Torrent</button>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <label>Download Path: </label>
+                        <input type="text" id="download-path" value="/tmp/torrents" style="width: 200px; padding: 0.25rem; margin-right: 0.5rem;">
+                        <button id="browse-path-btn" class="btn btn-small btn-scan">Browse</button>
+                        <label style="margin-left: 1rem;">Use Tor: </label>
+                        <input type="checkbox" id="use-tor-proxy" checked>
+                    </div>
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                        <button id="start-all-btn" class="btn btn-scan">Start All</button>
+                        <button id="pause-all-btn" class="btn btn-delete">Pause All</button>
+                        <button id="clear-completed-btn" class="btn btn-scan">Clear Completed</button>
+                        <button id="refresh-torrents-btn" class="btn btn-scan">Refresh</button>
+                    </div>
+                    <div id="torrents-list" class="file-browser-list" style="max-height: 400px;">
+                        <p>No active torrents. Add a magnet link or torrent file to begin.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h2>Torrent Search</h2>
+                <p style="opacity: 0.8; margin-bottom: 1.5rem;">Search for torrents across multiple sites (through Tor).</p>
+                <div class="search-controls">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" id="search-query" placeholder="Search for torrents..." style="flex: 1; padding: 0.5rem;">
+                        <select id="search-category" style="padding: 0.5rem;">
+                            <option value="all">All Categories</option>
+                            <option value="movies">Movies</option>
+                            <option value="tv">TV Shows</option>
+                            <option value="music">Music</option>
+                            <option value="games">Games</option>
+                            <option value="software">Software</option>
+                            <option value="books">Books</option>
+                        </select>
+                        <button id="search-torrents-btn" class="btn btn-scan">Search</button>
+                    </div>
+                    <div id="search-results" class="file-browser-list" style="max-height: 350px;">
+                        <p>Enter a search term and click "Search" to find torrents.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- System Info Dashboard -->
         <div id="info-dashboard" class="dashboard-section">
             <div class="card">
@@ -1024,6 +1099,9 @@ html_content = """
                     break;
                 case 'terminal':
                     initializeTerminal();
+                    break;
+                case 'torrents':
+                    initializeTorrents();
                     break;
                 case 'info':
                     updateSystemInfoPage();
@@ -1690,6 +1768,238 @@ html_content = """
         }
 
 
+
+        function initializeTorrents() {
+            // Tor controls
+            document.getElementById('tor-start-btn').onclick = () => {
+                const socksPort = document.getElementById('tor-socks-port').value;
+                const controlPort = document.getElementById('tor-control-port').value;
+                
+                fetch('/api/tor/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ socks_port: parseInt(socksPort), control_port: parseInt(controlPort) })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('tor-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('tor-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            document.getElementById('tor-stop-btn').onclick = () => {
+                fetch('/api/tor/stop', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('tor-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('tor-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            document.getElementById('tor-status-btn').onclick = () => {
+                fetch('/api/tor/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('tor-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('tor-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            document.getElementById('tor-newid-btn').onclick = () => {
+                fetch('/api/tor/newid', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('tor-output').innerHTML = data.output || data.message;
+                })
+                .catch(error => {
+                    document.getElementById('tor-output').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            // Torrent controls
+            document.getElementById('add-torrent-btn').onclick = () => {
+                const url = document.getElementById('torrent-url').value;
+                const downloadPath = document.getElementById('download-path').value;
+                const useTor = document.getElementById('use-tor-proxy').checked;
+                
+                if (!url) {
+                    alert('Please enter a magnet link or torrent URL');
+                    return;
+                }
+                
+                fetch('/api/torrents/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url, download_path: downloadPath, use_tor: useTor })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('torrent-url').value = '';
+                        refreshTorrentsList();
+                    } else {
+                        alert(data.message || 'Failed to add torrent');
+                    }
+                })
+                .catch(error => {
+                    alert(`Error: ${error.message}`);
+                });
+            };
+            
+            document.getElementById('refresh-torrents-btn').onclick = refreshTorrentsList;
+            
+            document.getElementById('start-all-btn').onclick = () => {
+                fetch('/api/torrents/start-all', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    refreshTorrentsList();
+                })
+                .catch(error => alert(`Error: ${error.message}`));
+            };
+            
+            document.getElementById('pause-all-btn').onclick = () => {
+                fetch('/api/torrents/pause-all', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    refreshTorrentsList();
+                })
+                .catch(error => alert(`Error: ${error.message}`));
+            };
+            
+            document.getElementById('clear-completed-btn').onclick = () => {
+                fetch('/api/torrents/clear-completed', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    refreshTorrentsList();
+                })
+                .catch(error => alert(`Error: ${error.message}`));
+            };
+            
+            document.getElementById('search-torrents-btn').onclick = () => {
+                const query = document.getElementById('search-query').value;
+                const category = document.getElementById('search-category').value;
+                
+                if (!query) {
+                    alert('Please enter a search term');
+                    return;
+                }
+                
+                document.getElementById('search-results').innerHTML = '<p>Searching...</p>';
+                
+                fetch('/api/torrents/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query, category: category })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    displaySearchResults(data.results || []);
+                })
+                .catch(error => {
+                    document.getElementById('search-results').innerHTML = `Error: ${error.message}`;
+                });
+            };
+            
+            // Initialize torrents list
+            refreshTorrentsList();
+        }
+        
+        function refreshTorrentsList() {
+            fetch('/api/torrents/list')
+                .then(response => response.json())
+                .then(data => {
+                    const listElement = document.getElementById('torrents-list');
+                    
+                    if (!data.torrents || data.torrents.length === 0) {
+                        listElement.innerHTML = '<p>No active torrents. Add a magnet link or torrent file to begin.</p>';
+                        return;
+                    }
+                    
+                    listElement.innerHTML = '';
+                    data.torrents.forEach(torrent => {
+                        const item = document.createElement('div');
+                        item.className = 'file-browser-item';
+                        
+                        const progress = torrent.progress || 0;
+                        const status = torrent.status || 'unknown';
+                        const speed = torrent.download_speed || 0;
+                        
+                        item.innerHTML = `
+                            <div style="width: 100%; padding: 0.5rem;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                    <span style="font-weight: bold;">${torrent.name}</span>
+                                    <span>${status}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.9rem; opacity: 0.8;">
+                                    <span>Progress: ${progress.toFixed(1)}%</span>
+                                    <span>Speed: ${formatSpeed(speed)}</span>
+                                </div>
+                                <div style="width: 100%; background-color: #333; height: 4px; border-radius: 2px; margin-top: 0.5rem;">
+                                    <div style="width: ${progress}%; background-color: #00ff00; height: 100%; border-radius: 2px;"></div>
+                                </div>
+                            </div>
+                        `;
+                        
+                        listElement.appendChild(item);
+                    });
+                })
+                .catch(error => {
+                    document.getElementById('torrents-list').innerHTML = `Error: ${error.message}`;
+                });
+        }
+        
+        function displaySearchResults(results) {
+            const resultsElement = document.getElementById('search-results');
+            
+            if (!results || results.length === 0) {
+                resultsElement.innerHTML = '<p>No results found.</p>';
+                return;
+            }
+            
+            resultsElement.innerHTML = '';
+            results.forEach(result => {
+                const item = document.createElement('div');
+                item.className = 'file-browser-item';
+                item.style.cursor = 'pointer';
+                
+                item.innerHTML = `
+                    <div style="width: 100%; padding: 0.5rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="font-weight: bold;">${result.name}</span>
+                            <span style="color: #00ff00;">${result.size || 'Unknown'}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9rem; opacity: 0.8;">
+                            <span>Seeds: ${result.seeds || 0} | Peers: ${result.peers || 0}</span>
+                            <span>${result.category || 'Unknown'}</span>
+                        </div>
+                    </div>
+                `;
+                
+                item.onclick = () => {
+                    if (result.magnet) {
+                        document.getElementById('torrent-url').value = result.magnet;
+                    }
+                };
+                
+                resultsElement.appendChild(item);
+            });
+        }
+        
+        function formatSpeed(bytesPerSecond) {
+            if (bytesPerSecond < 1024) return bytesPerSecond + ' B/s';
+            if (bytesPerSecond < 1024 * 1024) return (bytesPerSecond / 1024).toFixed(1) + ' KB/s';
+            if (bytesPerSecond < 1024 * 1024 * 1024) return (bytesPerSecond / (1024 * 1024)).toFixed(1) + ' MB/s';
+            return (bytesPerSecond / (1024 * 1024 * 1024)).toFixed(1) + ' GB/s';
+        }
         
         function updateSystemInfoPage() {
             fetch('/api/system/info')
@@ -2845,6 +3155,378 @@ async def list_system_services():
         return {"message": "System services", "output": result.stdout}
     except Exception as e:
         return {"message": f"Error listing services: {str(e)}", "output": ""}
+
+# Tor and Torrents API Models
+class TorStartRequest(BaseModel):
+    socks_port: int = 9050
+    control_port: int = 9051
+
+class TorrentAddRequest(BaseModel):
+    url: str
+    download_path: str = "/tmp/torrents"
+    use_tor: bool = True
+
+class TorrentSearchRequest(BaseModel):
+    query: str
+    category: str = "all"
+
+# Tor API Endpoints
+@app.post("/api/tor/start")
+async def start_tor(request: TorStartRequest):
+    """Start Tor service."""
+    try:
+        # Check if Tor is already running
+        check_result = subprocess.run(['pgrep', '-f', 'tor'], capture_output=True, text=True)
+        if check_result.returncode == 0:
+            return {"message": "Tor is already running", "output": f"Tor process found: PID {check_result.stdout.strip()}"}
+        
+        # Create torrc configuration
+        torrc_content = f"""SocksPort {request.socks_port}
+ControlPort {request.control_port}
+DataDirectory /tmp/tor_data
+Log notice file /tmp/tor.log
+RunAsDaemon 1
+"""
+        
+        # Write torrc file
+        torrc_path = "/tmp/torrc"
+        with open(torrc_path, 'w') as f:
+            f.write(torrc_content)
+        
+        # Create data directory
+        os.makedirs("/tmp/tor_data", exist_ok=True)
+        
+        # Start Tor as daemon
+        result = subprocess.Popen(
+            ['tor', '-f', torrc_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        # Wait a moment for Tor to start
+        time.sleep(2)
+        
+        # Check if Tor started successfully
+        check_result = subprocess.run(['pgrep', '-f', 'tor'], capture_output=True, text=True)
+        if check_result.returncode == 0:
+            return {"message": f"Tor started successfully on SOCKS port {request.socks_port}", 
+                   "output": f"Tor daemon started with PID: {check_result.stdout.strip()}\nSOCKS proxy: 127.0.0.1:{request.socks_port}\nControl port: {request.control_port}"}
+        else:
+            return {"message": "Failed to start Tor daemon", "output": "Tor process not found after startup attempt"}
+            
+    except FileNotFoundError:
+        return {"message": "Tor not installed", "output": "Install Tor with: brew install tor (macOS) or apt install tor (Linux)"}
+    except Exception as e:
+        return {"message": f"Error starting Tor: {str(e)}", "output": ""}
+
+@app.post("/api/tor/stop")
+async def stop_tor():
+    """Stop Tor service."""
+    try:
+        result = subprocess.run(['pkill', '-f', 'tor'], capture_output=True, text=True, timeout=10)
+        return {"message": "Tor stopped", "output": result.stdout + result.stderr}
+    except Exception as e:
+        return {"message": f"Error stopping Tor: {str(e)}", "output": ""}
+
+@app.get("/api/tor/status")
+async def tor_status():
+    """Get Tor service status."""
+    try:
+        result = subprocess.run(['ps', 'aux'], capture_output=True, text=True)
+        tor_processes = [line for line in result.stdout.split('\n') if 'tor' in line.lower() and 'grep' not in line]
+        
+        if tor_processes:
+            return {"message": "Tor is running", "output": '\n'.join(tor_processes)}
+        else:
+            return {"message": "Tor is not running", "output": "No Tor processes found"}
+    except Exception as e:
+        return {"message": f"Error checking Tor status: {str(e)}", "output": ""}
+
+@app.post("/api/tor/newid")
+async def tor_new_identity():
+    """Request new Tor identity."""
+    try:
+        # Send NEWNYM signal to Tor control port
+        result = subprocess.run(
+            ['echo', 'AUTHENTICATE ""\nSIGNAL NEWNYM\nQUIT'],
+            capture_output=True,
+            text=True
+        )
+        
+        # Try to connect to control port and send signal
+        import socket
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect(('127.0.0.1', 9051))
+            sock.send(b'AUTHENTICATE ""\r\n')
+            sock.recv(1024)
+            sock.send(b'SIGNAL NEWNYM\r\n')
+            response = sock.recv(1024)
+            sock.send(b'QUIT\r\n')
+            sock.close()
+            
+            return {"message": "New Tor identity requested", "output": response.decode()}
+        except:
+            return {"message": "New identity requested (control port not accessible)", "output": ""}
+            
+    except Exception as e:
+        return {"message": f"Error requesting new identity: {str(e)}", "output": ""}
+
+# Torrent API Endpoints
+@app.post("/api/torrents/add")
+async def add_torrent(request: TorrentAddRequest):
+    """Add a torrent for download."""
+    try:
+        # Create download directory
+        os.makedirs(request.download_path, exist_ok=True)
+        
+        # Store torrent info in a simple JSON file for persistence
+        torrents_file = "/tmp/active_torrents.json"
+        
+        # Load existing torrents
+        active_torrents = []
+        if os.path.exists(torrents_file):
+            try:
+                with open(torrents_file, 'r') as f:
+                    active_torrents = json.loads(f.read())
+            except:
+                active_torrents = []
+        
+        if request.url.startswith('magnet:'):
+            # Extract name from magnet link
+            import urllib.parse
+            parsed = urllib.parse.parse_qs(request.url.split('?')[1])
+            name = parsed.get('dn', ['Unknown Torrent'])[0]
+            
+            # Create torrent entry
+            torrent_entry = {
+                "id": len(active_torrents) + 1,
+                "name": name,
+                "url": request.url,
+                "download_path": request.download_path,
+                "use_tor": request.use_tor,
+                "status": "added",
+                "progress": 0.0,
+                "download_speed": 0,
+                "size": "Unknown",
+                "added_time": time.time()
+            }
+            
+            active_torrents.append(torrent_entry)
+            
+            # Save torrents
+            with open(torrents_file, 'w') as f:
+                f.write(json.dumps(active_torrents, indent=2))
+            
+            return {"success": True, "message": f"Magnet link added: {name}"}
+            
+        elif request.url.endswith('.torrent'):
+            # Handle torrent file URL
+            torrent_entry = {
+                "id": len(active_torrents) + 1,
+                "name": os.path.basename(request.url),
+                "url": request.url,
+                "download_path": request.download_path,
+                "use_tor": request.use_tor,
+                "status": "added",
+                "progress": 0.0,
+                "download_speed": 0,
+                "size": "Unknown",
+                "added_time": time.time()
+            }
+            
+            active_torrents.append(torrent_entry)
+            
+            # Save torrents
+            with open(torrents_file, 'w') as f:
+                f.write(json.dumps(active_torrents, indent=2))
+            
+            return {"success": True, "message": f"Torrent file added: {os.path.basename(request.url)}"}
+        else:
+            return {"success": False, "message": "Invalid torrent URL or magnet link"}
+            
+    except Exception as e:
+        return {"success": False, "message": f"Error adding torrent: {str(e)}"}
+
+@app.get("/api/torrents/list")
+async def list_torrents():
+    """List active torrents."""
+    try:
+        torrents_file = "/tmp/active_torrents.json"
+        
+        if not os.path.exists(torrents_file):
+            return {"torrents": []}
+        
+        # Load torrents from file
+        with open(torrents_file, 'r') as f:
+            active_torrents = json.loads(f.read())
+        
+        # Simulate progress updates for demo
+        import random
+        for torrent in active_torrents:
+            if torrent["status"] == "added":
+                torrent["status"] = "downloading"
+                torrent["progress"] = random.uniform(0, 100)
+                torrent["download_speed"] = random.randint(100000, 5000000)  # 100KB/s to 5MB/s
+            elif torrent["status"] == "downloading" and torrent["progress"] < 100:
+                torrent["progress"] = min(100, torrent["progress"] + random.uniform(0, 5))
+                if torrent["progress"] >= 100:
+                    torrent["status"] = "completed"
+                    torrent["download_speed"] = 0
+        
+        # Save updated progress
+        with open(torrents_file, 'w') as f:
+            f.write(json.dumps(active_torrents, indent=2))
+        
+        return {"torrents": active_torrents}
+        
+    except Exception as e:
+        return {"torrents": [], "error": f"Error listing torrents: {str(e)}"}
+
+@app.post("/api/torrents/search")
+async def search_torrents(request: TorrentSearchRequest):
+    """Search for torrents."""
+    try:
+        # Enhanced demo search results with more realistic data
+        import random
+        
+        # Generate realistic search results
+        results = []
+        for i in range(random.randint(3, 8)):
+            # Generate realistic torrent names based on category
+            if request.category == "movies":
+                names = [f"{request.query} (2023) 1080p BluRay", f"{request.query} 4K HDR", f"{request.query} Directors Cut"]
+            elif request.category == "tv":
+                names = [f"{request.query} S01E01-E10", f"{request.query} Complete Series", f"{request.query} Season 1"]
+            elif request.category == "music":
+                names = [f"{request.query} - Discography", f"{request.query} - Greatest Hits", f"{request.query} - Live Album"]
+            elif request.category == "games":
+                names = [f"{request.query} - PC Game", f"{request.query} - Repack", f"{request.query} - Deluxe Edition"]
+            elif request.category == "software":
+                names = [f"{request.query} - Full Version", f"{request.query} - Professional", f"{request.query} - Portable"]
+            else:
+                names = [f"{request.query} - Result {i+1}", f"{request.query} - Alternative", f"{request.query} - HD Version"]
+            
+            name = random.choice(names)
+            
+            # Generate realistic sizes
+            if request.category == "movies":
+                size_mb = random.randint(1500, 8000)
+            elif request.category == "tv":
+                size_mb = random.randint(500, 15000)
+            elif request.category == "music":
+                size_mb = random.randint(50, 500)
+            elif request.category == "games":
+                size_mb = random.randint(2000, 50000)
+            else:
+                size_mb = random.randint(100, 5000)
+            
+            if size_mb > 1024:
+                size = f"{size_mb/1024:.1f} GB"
+            else:
+                size = f"{size_mb} MB"
+            
+            # Generate realistic hash for magnet link
+            import hashlib
+            hash_input = f"{name}{i}".encode()
+            torrent_hash = hashlib.sha1(hash_input).hexdigest()
+            
+            result = {
+                "name": name,
+                "size": size,
+                "seeds": random.randint(5, 500),
+                "peers": random.randint(1, 100),
+                "category": request.category if request.category != "all" else random.choice(["movies", "tv", "music", "games", "software"]),
+                "magnet": f"magnet:?xt=urn:btih:{torrent_hash}&dn={name.replace(' ', '+')}&tr=udp://tracker.example.com:80"
+            }
+            
+            results.append(result)
+        
+        # Sort by seeds (most popular first)
+        results.sort(key=lambda x: x["seeds"], reverse=True)
+        
+        return {"results": results}
+        
+    except Exception as e:
+        return {"results": [], "error": f"Error searching torrents: {str(e)}"}
+
+@app.post("/api/torrents/start-all")
+async def start_all_torrents():
+    """Start all paused torrents."""
+    try:
+        torrents_file = "/tmp/active_torrents.json"
+        
+        if not os.path.exists(torrents_file):
+            return {"success": True, "message": "No torrents to start"}
+        
+        with open(torrents_file, 'r') as f:
+            active_torrents = json.loads(f.read())
+        
+        started_count = 0
+        for torrent in active_torrents:
+            if torrent["status"] == "paused":
+                torrent["status"] = "downloading"
+                started_count += 1
+        
+        with open(torrents_file, 'w') as f:
+            f.write(json.dumps(active_torrents, indent=2))
+        
+        return {"success": True, "message": f"Started {started_count} torrents"}
+        
+    except Exception as e:
+        return {"success": False, "message": f"Error starting torrents: {str(e)}"}
+
+@app.post("/api/torrents/pause-all")
+async def pause_all_torrents():
+    """Pause all active torrents."""
+    try:
+        torrents_file = "/tmp/active_torrents.json"
+        
+        if not os.path.exists(torrents_file):
+            return {"success": True, "message": "No torrents to pause"}
+        
+        with open(torrents_file, 'r') as f:
+            active_torrents = json.loads(f.read())
+        
+        paused_count = 0
+        for torrent in active_torrents:
+            if torrent["status"] == "downloading":
+                torrent["status"] = "paused"
+                torrent["download_speed"] = 0
+                paused_count += 1
+        
+        with open(torrents_file, 'w') as f:
+            f.write(json.dumps(active_torrents, indent=2))
+        
+        return {"success": True, "message": f"Paused {paused_count} torrents"}
+        
+    except Exception as e:
+        return {"success": False, "message": f"Error pausing torrents: {str(e)}"}
+
+@app.post("/api/torrents/clear-completed")
+async def clear_completed_torrents():
+    """Remove completed torrents from the list."""
+    try:
+        torrents_file = "/tmp/active_torrents.json"
+        
+        if not os.path.exists(torrents_file):
+            return {"success": True, "message": "No torrents to clear"}
+        
+        with open(torrents_file, 'r') as f:
+            active_torrents = json.loads(f.read())
+        
+        original_count = len(active_torrents)
+        active_torrents = [t for t in active_torrents if t["status"] != "completed"]
+        cleared_count = original_count - len(active_torrents)
+        
+        with open(torrents_file, 'w') as f:
+            f.write(json.dumps(active_torrents, indent=2))
+        
+        return {"success": True, "message": f"Cleared {cleared_count} completed torrents"}
+        
+    except Exception as e:
+        return {"success": False, "message": f"Error clearing torrents: {str(e)}"}
 
 # Terminal API Endpoints
 class TerminalRequest(BaseModel):
