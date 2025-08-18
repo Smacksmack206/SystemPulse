@@ -113,7 +113,10 @@ Bash
 python pulse.py --scan-ports 3000-3010
 
 
-## Future Plans: SystemPulse for macOS
+
+# Future Plans 
+
+## SystemPulse for macOS
 I am excited to announce that I am in the process of developing a native macOS version of SystemPulse. This will be a polished, feature-rich application available on the Mac App Store as a SaaS product. The macOS version will leverage native frameworks to provide an even more seamless and integrated experience, with additional features such as:
 
 Enhanced UI/UX: A refined and polished user interface that feels right at home on macOS.
